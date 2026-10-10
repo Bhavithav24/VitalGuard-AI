@@ -1,76 +1,64 @@
-# VitalGuard AI — Real-time Demo Roadmap
+# VitalGuard AI — Delivery roadmap and verified scope
 
-> Fictional synthetic data only. This project is a software prototype, not a clinically validated medical device or clinical decision-support system.
+> Synthetic data only. This is a software prototype, not a clinically validated medical device or clinical decision-support system.
 
-## Product objective
+## Delivered phases
 
-Deliver a polished end-to-end demonstration of how timestamped patient observations could flow through ingestion, validation, risk-signal processing, alert management, and a live dashboard. Do not present simulated data as device data or model output as a clinically validated deterioration probability.
+### Phase 1 — Synthetic observation ingestion
+- Deterministic stable, worsening, and recovering fictional scenarios.
+- Validated ingestion endpoint: `POST /api/v1/demo/observations`.
+- Persists the generated observation and synthetic model result.
 
-## Phase 1 — Observation simulator and ingestion API
+### Phase 2 — Storage adapter
+- SQLAlchemy adapter supports local SQLite and PostgreSQL via private `DATABASE_URL`.
+- Schema creation/migration helpers and history indexes.
+- **Not complete for production:** a hosted PostgreSQL instance has not been provisioned/connected in the current deployment; SQLite remains the default unless configured.
 
-- Deterministic stable, worsening, and recovering scenarios.
-- Validated endpoint that generates one fictional observation, runs the current demo model, and saves the observation/prediction.
-- Bounded step values and strict request schema.
-- Automated tests for repeatability, trend direction, persistence, and invalid input.
-- Endpoint: `POST /api/v1/demo/observations`.
-- This phase is an API-level simulator. It does not yet continuously emit events or update the frontend in real time.
+### Phase 3 — Live event delivery
+- WebSocket endpoint: `/api/v1/live`.
+- Observation and alert events broadcast after persistence.
+- Frontend connection state, heartbeat and reconnect backoff.
+- The event hub is in-process and intended for a single backend instance.
 
-Acceptance: a request returns a prediction and observation ID; the record appears in the existing history endpoint; invalid request bodies are rejected.
+### Phase 4 — Alert lifecycle
+- Persistent synthetic alerts with deduplication keys.
+- Open, acknowledged and resolved states.
+- Audit trail for creation and state transitions.
 
-## Phase 2 — Durable database and schema
+### Phase 5 — Live dashboard alert operations
+- Backend alert inbox in Alert Center.
+- Refresh, status filters, acknowledge and resolve controls.
+- Connection state visible in the app shell.
 
-- Provision hosted PostgreSQL and configure private `DATABASE_URL`.
-- Store patient metadata, observations, predictions, alerts, and audit events with migrations and indexes.
-- Preserve the SQLite developer workflow.
-- Verify history survives restart and redeploy; document migration and backup strategy.
+### Phase 6 — Observation data quality
+- `GET /api/v1/observations/quality` classifies recent records as fresh, stale, incomplete or unknown.
+- Dashboard panel displays observation age and missing required fields.
+- Scope is limited to a bounded history page; it cannot detect devices that never sent a reading.
 
-## Phase 3 — Live event delivery
+### Phase 7 — Model evaluation transparency
+- `GET /api/v1/model/evaluation` returns deterministic stratified synthetic holdout metrics and a confusion matrix.
+- `POST /api/v1/risk/explain` returns standardized logistic-regression coefficient contributions.
+- These metrics only measure agreement with generated heuristic labels. Contributions are not SHAP or causal explanations.
 
-- Add WebSocket updates for newly persisted observations and alerts.
-- Broadcast only after successful persistence.
-- Add reconnect/backoff, connection state, heartbeat, and REST catch-up after reconnect.
-- Test multiple subscribers, disconnected clients, and event ordering.
+### Phase 8 — Explainability workbench
+- Settings form sends fictional vitals to the contribution endpoint without saving a prediction.
+- Displays the synthetic score and signed coefficient contributions.
 
-## Phase 4 — Alert lifecycle
+### Phase 9 — Persisted history UI
+- Dashboard shows recent backend predictions, model versions, timestamps, scores and a patient filter.
 
-- Separate threshold/rule signals from ML estimates.
-- Add stable alert IDs, deduplication, acknowledgement, assignment, notes, resolution, and an audit timeline.
-- Make alert generation independent of an open browser session.
-- Add demo-only escalation simulation with visible labels.
+### Phase 10 — Release smoke checks
+- `npm run smoke:api` exercises health, model metadata, CORS, prediction persistence, synthetic evaluation, explanations, quality status and alert lifecycle/audit.
 
-## Phase 5 — Patient timeline and data quality
+## Remaining work before any real-world use
 
-- Unified patient timeline for observation, prediction, alert, acknowledgement, and resolution.
-- Trend charts and visible last-observed timestamps.
-- Flag stale, missing, malformed, and out-of-order observations.
-- Never represent stale data as live.
+1. Provision a managed PostgreSQL database, configure secrets in Render, and verify data survival across restart/redeploy. Define retention, backup, restore, and migration procedures.
+2. Implement proper identity and role-based authorization before any sensitive or multi-user workflow. The current demo actor is not authentication.
+3. Add durable cross-instance event delivery if scaling beyond one backend instance.
+4. Add production-grade observability, request limits, security review, dependency remediation, and operational incident procedures.
+5. Keep local synthetic patient lists/charts/analytics visibly separate from backend-persisted observations. Not all dashboard views consume the backend API.
+6. Do not claim NEWS2 compliance, SHAP, clinical accuracy, or patient deterioration prediction until implemented from reviewed specifications and evaluated on appropriately authorized, representative data with suitable governance.
 
-## Phase 6 — Clinical scoring and model evaluation
+## Safety boundary
 
-- Implement NEWS2 only from an authoritative, reviewed specification, including required inputs and oxygen-supplementation/context rules.
-- Keep deterministic score separate from ML output.
-- Define prediction target and time horizon before training.
-- Use patient-separated evaluation, leakage controls, calibration and sensitivity/false-alarm analysis.
-- Keep synthetic model clearly labelled until real, appropriately authorized data and evaluation support stronger claims.
-
-## Phase 7 — Explainability and trend analysis
-
-- Add SHAP only for a compatible trained model.
-- Persist model version and exact input snapshot with each prediction.
-- Compare temporal approaches against a documented baseline; do not imply causality from feature explanations.
-
-## Phase 8 — Access controls and operational safety
-
-- Authentication, role-based authorization, audit logs, secrets management, request limits, monitoring and backup/restore drills.
-- No real patient information in demo fixtures, screenshots, logs, or test runs.
-
-## Phase 9 — End-to-end demo readiness
-
-- Test full scenario from observation to alert to acknowledgement and resolution.
-- Test reload, reconnect, restart, duplicate submission, stale feed, and database/API outage.
-- Run CI and production smoke tests against the deployed branch.
-- Keep explicit synthetic-data and non-clinical-use disclosures visible.
-
-## Current known limitation
-
-The current dashboard still uses local synthetic data for patient lists, vital charts, alerts and analytics. Phase 1 creates an API ingestion path but does not connect those dashboard views to the backend yet.
+Never use real patient data. Missing or stale observations are unknown, not normal. Synthetic model metrics do not establish clinical performance, calibration, or safety. This prototype must not be used for diagnosis, triage, or treatment decisions.
