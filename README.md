@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # VitalGuard AI — Patient Deterioration Early-Warning Prototype
 
 > **DEMO ONLY · SYNTHETIC DATA · NOT FOR CLINICAL USE**
@@ -92,8 +91,3 @@ The synthetic dataset includes stable, worsening and recovering scenarios. These
 4. Implement a FastAPI inference service and explicit observation/risk contracts.
 5. Integrate backend-backed patient observations, predictions and alerts.
 6. Validate end-to-end behavior before deployment.
-=======
-# VitalGuard AI
-
-AI-assisted patient deterioration early-warning prototype. Demo only; uses synthetic data and is not for clinical use. Full source upload in progress.
->>>>>>> 951963476f0756532b71e10525ca9dee9d365929
