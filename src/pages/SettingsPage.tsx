@@ -7,6 +7,7 @@ import { APP_CONFIG } from '../services/config.ts';
 import { RiskEnginePanel } from '../components/settings/RiskEnginePanel.tsx';
 import { ModelEvaluationPanel } from '../components/settings/ModelEvaluationPanel.tsx';
 import { ExplainabilityWorkbench } from '../components/settings/ExplainabilityWorkbench.tsx';
+import { News2DemoCalculator } from '../components/settings/News2DemoCalculator.tsx';
 function Seg<T extends string | number>({ options, value, onPick, label }: { options: readonly T[]; value: T; onPick: (v: T) => void; label: string }) {
   const labelOf = (o: T): string => {
     if (typeof o === 'number') return `${o}×`;
@@ -33,6 +34,7 @@ export function SettingsPage() {
       <div className="mt-4"><RiskEnginePanel /></div>
       <div className="mt-4"><ModelEvaluationPanel /></div>
       <div className="mt-4"><ExplainabilityWorkbench /></div>
+      <div className="mt-4"><News2DemoCalculator /></div>
       <div className="mt-4 grid lg:grid-cols-2 gap-4 items-start">
         <SectionCard eyebrow="Data" title="Data source" hint="Where patient data comes from" label="Environment">
           <Seg options={['demo', 'api'] as const} value={dataSource} onPick={setDataSource} label="Data source" />
