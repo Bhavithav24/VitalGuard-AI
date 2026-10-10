@@ -84,6 +84,15 @@ The synthetic dataset includes stable, worsening and recovering scenarios. These
 - Keep test data synthetic and do not add identifiable patient information.
 - Before deployment, verify the build, tests, environment configuration, API failure handling and all key browser workflows.
 
+## Live API smoke test
+
+A manually triggered GitHub Actions workflow checks the deployed API's health endpoint, model metadata, frontend CORS preflight, synthetic prediction response, persisted observation history, and invalid-input rejection. It uses a unique `SMOKE-*` demo patient ID and synthetic values only.
+
+- Workflow: `.github/workflows/live-api-smoke.yml`
+- Script: `scripts/smoke-test.mjs`
+- Run it from GitHub: **Actions → Live API smoke test → Run workflow**.
+- The workflow tests the live service and can create one synthetic demo observation per run. Do not send real patient data.
+
 ## Planned next steps
 
 1. Establish a clean, reproducible frontend build and test baseline.
@@ -92,4 +101,5 @@ The synthetic dataset includes stable, worsening and recovering scenarios. These
 4. Add the FastAPI synthetic risk service with validated request/response contracts.
 5. Persist demo predictions in SQLite and expose bounded, filterable observation history.
 6. Integrate the Settings risk-engine panel with API health, prediction and history workflows.
-7. Complete end-to-end tests and configure persistent storage before treating history as durable.
+7. Add and run live API smoke checks for health, CORS, predictions, history and invalid inputs.
+8. Complete browser end-to-end tests and configure persistent storage before treating history as durable.
