@@ -5,6 +5,7 @@ import { BackendOffline } from '../components/ui/States.tsx';
 import { useSimulation } from '../store/useSimulation.ts';
 import { APP_CONFIG } from '../services/config.ts';
 import { RiskEnginePanel } from '../components/settings/RiskEnginePanel.tsx';
+import { ModelEvaluationPanel } from '../components/settings/ModelEvaluationPanel.tsx';
 function Seg<T extends string | number>({ options, value, onPick, label }: { options: readonly T[]; value: T; onPick: (v: T) => void; label: string }) {
   const labelOf = (o: T): string => {
     if (typeof o === 'number') return `${o}×`;
@@ -29,6 +30,7 @@ export function SettingsPage() {
         subtitle="Monitoring, appearance, data source and system information."
         crumbs={[{ label: 'Dashboard', to: '/dashboard' }, { label: 'Settings' }]} />
       <div className="mt-4"><RiskEnginePanel /></div>
+      <div className="mt-4"><ModelEvaluationPanel /></div>
       <div className="mt-4 grid lg:grid-cols-2 gap-4 items-start">
         <SectionCard eyebrow="Data" title="Data source" hint="Where patient data comes from" label="Environment">
           <Seg options={['demo', 'api'] as const} value={dataSource} onPick={setDataSource} label="Data source" />
@@ -66,7 +68,7 @@ export function SettingsPage() {
             <div className="rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/50 dark:border-white/[0.06] p-3"><dt className="eyebrow">Frontend version</dt><dd className="font-bold mt-1">{APP_CONFIG.version}</dd></div>
             <div className="rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/50 dark:border-white/[0.06] p-3"><dt className="eyebrow">API mode</dt><dd className="font-bold mt-1">{dataSource === 'demo' ? 'Local dataset' : 'Backend API + fallback'}</dd></div>
             <div className="rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/50 dark:border-white/[0.06] p-3"><dt className="eyebrow">Environment</dt><dd className="font-bold mt-1 tabular-nums">{APP_CONFIG.env}</dd></div>
-            <div className="rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/50 dark:border-white/[0.06] p-3"><dt className="eyebrow">Endpoints</dt><dd className="font-mono text-[11px] mt-1">/api/v1/patients · /vitals · /vitals/latest</dd></div>
+            <div className="rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/50 dark:border-white/[0.06] p-3"><dt className="eyebrow">Endpoints</dt><dd className="font-mono text-[11px] mt-1">/api/v1/model/evaluation · /api/v1/risk/explain</dd></div>
           </dl>
         </SectionCard>
         <div className="lg:col-span-2">
