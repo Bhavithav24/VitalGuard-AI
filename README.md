@@ -67,9 +67,10 @@ Copy `.env.example` to `.env` for local development. Vite variables prefixed wit
 - SQLAlchemy storage adapter supports local SQLite and PostgreSQL when `DATABASE_URL` is configured. A hosted PostgreSQL instance is not yet confirmed in the live deployment.
 - WebSocket event delivery for persisted observations and alerts, with a reconnecting frontend client.
 - Persistent demo alert lifecycle (open, acknowledged, resolved) with audit trail.
-- Dashboard includes backend alert operations, observation quality, and persisted prediction history. Patient cohort, vital charts and analytics still use local synthetic fixtures.
+- Dashboard includes backend alert operations, observation quality, and persisted prediction history. Patient detail includes backend observation/alert/audit timeline and descriptive trends. Patient cohort, vital charts and analytics still use local synthetic fixtures.
 - Interactive model evaluation and coefficient-contribution workbench in Settings.
-- Source-documented NEWS2 parameter scoring demo endpoint and Settings calculator; this is not a clinically validated implementation.
+- Source-documented NEWS2 parameter scoring demo endpoint (`POST /api/v1/scores/news2`) and Settings calculator; this is not a clinically validated or approved implementation.
+- Unified persisted patient timeline (`GET /api/v1/patients/{patient_id}/timeline`) and descriptive trend endpoint (`GET /api/v1/observations/trends?patient_id=...`).
 - Deterministic simulator endpoint for stable, worsening, and recovering fictional observation scenarios.
 
 ### Phase 1 API: synthetic observation ingestion
@@ -98,7 +99,7 @@ curl -X POST http://localhost:8000/api/v1/demo/observations \
 History can be inspected at:
 `GET /api/v1/observations?patient_id=DEMO-LIVE-001`
 
-This is an API-level simulator, not a continuous streaming feed yet. Each request creates a new observation; requests are not idempotent. WebSocket delivery, frontend integration, and durable hosted PostgreSQL configuration are future phases.
+This is a one-observation-per-request simulator, not a continuous device feed. Each request creates a new observation; requests are not idempotent. The backend broadcasts saved observations and alerts over `/api/v1/live`, and the dashboard includes backend alert, history, timeline and trend views. Not all patient cards/charts are API-backed. Durable hosted PostgreSQL configuration remains outstanding.
 
 ## Important limitations
 
@@ -106,7 +107,7 @@ This is an API-level simulator, not a continuous streaming feed yet. Each reques
 - The model is a StandardScaler + LogisticRegression classifier trained on generated synthetic observations and heuristic labels. Its output is a demo signal, not a validated probability of clinical deterioration.
 - Model evaluation metrics describe agreement with synthetic heuristic labels only. Coefficient contributions are not SHAP explanations or causal attributions.
 - WebSocket fan-out is in-process and designed for a single backend instance. Hosted PostgreSQL, identity/role controls, and production operational safeguards remain deployment work.
-- The existing NEWS2-like display is not a validated NEWS2 implementation.
+- The NEWS2 scoring endpoint follows parameter bands from the RCP chart for demonstration, but the implementation is not clinically validated or approved. The existing local NEWS2-like display also remains a separate synthetic fixture.
 - No clinical performance, safety, regulatory or real-device integration is claimed.
 - Do not use real patient data or use this prototype to diagnose, triage, or make treatment decisions.
 
@@ -119,6 +120,9 @@ backend/app/
   schemas.py           Validated API request/response schemas
   simulator.py         Deterministic fictional observation scenarios
   simulator_routes.py  Demo observation ingestion endpoint
+  timeline_routes.py   Persisted patient timeline
+  trend_routes.py      Descriptive observation trends
+  news2.py             NEWS2 parameter scoring demonstration
   storage.py           SQLite/PostgreSQL storage adapter
 backend/tests/
   test_api.py
