@@ -58,7 +58,7 @@ describe('NEWS2 demo calculator', () => {
     await user.click(screen.getByRole('button', { name: /calculate demo score/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/Scale 2 requires an explicit acknowledgement/i);
     expect(fetchMock).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('checkbox', { name: /Scale 2 authorization assertion/i }));
     await user.click(screen.getByRole('button', { name: /calculate demo score/i }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
     expect(JSON.parse(String(fetchMock.mock.calls[0][1].body)).scale2_authorized).toBe(true);
