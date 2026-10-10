@@ -122,7 +122,7 @@ async function main() {
   assert.equal(invalid.status, 422, 'Out-of-range vitals should be rejected with 422');
   console.log('✓ Invalid input rejected');
 
-  console.log('All live API smoke checks passed. Synthetic demo data only; not for clinical use.');
+  console.log('All live API smoke checks passed, including prediction persistence through the configured storage adapter. Synthetic demo data only; not for clinical use.');
 }
 
 main().catch((error) => {
