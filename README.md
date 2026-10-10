@@ -63,9 +63,13 @@ Copy `.env.example` to `.env` for local development. Vite variables prefixed wit
 
 - React, TypeScript, Vite and Tailwind frontend with dashboard, patient directory/detail, alerts, analytics and settings.
 - Existing synthetic patient records, demo simulation controls and local UI persistence.
-- FastAPI risk endpoint, model metadata endpoint, bounded observation history and synthetic Logistic Regression model.
-- SQLAlchemy storage adapter supporting local SQLite and PostgreSQL when `DATABASE_URL` is configured.
-- Phase 1 adds a deterministic backend simulator for stable, worsening, and recovering fictional observation scenarios.
+- FastAPI synthetic risk endpoint, model metadata, deterministic holdout evaluation, coefficient-contribution explanation, bounded observation history and observation quality endpoint.
+- SQLAlchemy storage adapter supports local SQLite and PostgreSQL when `DATABASE_URL` is configured. A hosted PostgreSQL instance is not yet confirmed in the live deployment.
+- WebSocket event delivery for persisted observations and alerts, with a reconnecting frontend client.
+- Persistent demo alert lifecycle (open, acknowledged, resolved) with audit trail.
+- Dashboard includes backend alert operations, observation quality, and persisted prediction history. Patient cohort, vital charts and analytics still use local synthetic fixtures.
+- Interactive model evaluation and coefficient-contribution workbench in Settings.
+- Deterministic simulator endpoint for stable, worsening, and recovering fictional observation scenarios.
 
 ### Phase 1 API: synthetic observation ingestion
 
@@ -97,9 +101,10 @@ This is an API-level simulator, not a continuous streaming feed yet. Each reques
 
 ## Important limitations
 
-- The default frontend still uses local synthetic data for the patient directory, vital charts, alerts and analytics. Those views are not yet fully connected to the backend event stream.
-- The model is a StandardScaler + LogisticRegression classifier trained on generated synthetic observations. Its output is a demo signal, not a validated probability of clinical deterioration.
-- Feature explanations are illustrative threshold indicators, not SHAP explanations or causal attributions.
+- Patient directory, vital charts, cohort analytics and some local alert cards still use local synthetic fixtures; backend history and alert operations are separate views.
+- The model is a StandardScaler + LogisticRegression classifier trained on generated synthetic observations and heuristic labels. Its output is a demo signal, not a validated probability of clinical deterioration.
+- Model evaluation metrics describe agreement with synthetic heuristic labels only. Coefficient contributions are not SHAP explanations or causal attributions.
+- WebSocket fan-out is in-process and designed for a single backend instance. Hosted PostgreSQL, identity/role controls, and production operational safeguards remain deployment work.
 - The existing NEWS2-like display is not a validated NEWS2 implementation.
 - No clinical performance, safety, regulatory or real-device integration is claimed.
 - Do not use real patient data or use this prototype to diagnose, triage, or make treatment decisions.
@@ -137,7 +142,7 @@ docs/
 
 ## Live API smoke test
 
-A manually triggered GitHub Actions workflow checks the deployed API's health endpoint, model metadata, frontend CORS preflight, synthetic prediction response, persisted observation history, and invalid-input rejection.
+Run `npm run smoke:api` to check health, model metadata, frontend CORS preflight, synthetic prediction and persistence, model evaluation, coefficient contributions, data quality, alert acknowledgement/resolution and audit trail. This writes fictional records to the configured demo database.
 
 - Workflow: `.github/workflows/live-api-smoke.yml`
 - Script: `scripts/smoke-test.mjs`
@@ -146,4 +151,4 @@ A manually triggered GitHub Actions workflow checks the deployed API's health en
 
 ## Roadmap
 
-See [docs/REALTIME_DEMO_ROADMAP.md](docs/REALTIME_DEMO_ROADMAP.md) for phases, acceptance criteria, and current limitations. The planned sequence is durable data storage → WebSocket event delivery → alert lifecycle → patient timeline/data quality → clinical scoring and evaluated ML → explainability → access controls → end-to-end demo hardening.
+See [docs/REALTIME_DEMO_ROADMAP.md](docs/REALTIME_DEMO_ROADMAP.md) for phases, acceptance criteria, and current limitations. The delivered phase status and remaining deployment requirements are tracked in the roadmap. Hosted PostgreSQL, identity/access controls, cross-instance event delivery, and any clinically meaningful model remain outstanding.
