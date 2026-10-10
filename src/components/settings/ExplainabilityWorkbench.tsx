@@ -117,7 +117,7 @@ export function ExplainabilityWorkbench() {
             const magnitude = Math.min(100, Math.abs(item.standardized_log_odds_contribution) * 20);
             return <div key={item.feature} className="rounded-xl border border-slate-200 dark:border-slate-700 p-3">
               <div className="flex flex-wrap justify-between gap-2 text-sm">
-                <span className="font-bold">{item.feature.replaceAll('_', ' ')}</span>
+                <span className="font-bold">{item.feature.replace(/_/g, ' ')}</span>
                 <span className="tabular-nums text-slate-500">Observed: {item.observed_value} · contribution {item.standardized_log_odds_contribution.toFixed(3)}</span>
               </div>
               <div className="mt-2 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
