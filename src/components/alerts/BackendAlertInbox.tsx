@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CheckCircle2, RefreshCw, ShieldAlert, WifiOff } from 'lucide-react';
+import { CheckCircle2, ChevronDown, History, RefreshCw, ShieldAlert, WifiOff } from 'lucide-react';
 import { APP_CONFIG } from '../../services/config.ts';
 import { useLiveEvents } from '../../services/useLiveEvents.ts';
 
@@ -14,6 +14,7 @@ type BackendAlert = {
   details: Record<string, unknown>;
 };
 type AlertResponse = { items: BackendAlert[]; count: number; demo_only: true };
+type AuditEvent = { id: number; entity_type: string; entity_id: string; action: string; actor: string; created_at: string; details: Record<string, unknown> };
 
 async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${APP_CONFIG.apiBaseUrl}${path}`, {
@@ -32,6 +33,9 @@ export function BackendAlertInbox() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState('');
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [auditByAlert, setAuditByAlert] = useState<Record<number, AuditEvent[]>>({});
+  const [auditLoadingId, setAuditLoadingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -60,6 +64,24 @@ export function BackendAlertInbox() {
       setError('Could not update this alert. Refresh and try again.');
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const showAudit = async (id: number) => {
+    if (expandedId === id) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(id);
+    if (auditByAlert[id]) return;
+    setAuditLoadingId(id);
+    try {
+      const result = await apiRequest<{ items: AuditEvent[]; count: number; demo_only: true }>('/api/v1/alerts/' + id + '/audit');
+      setAuditByAlert((current) => ({ ...current, [id]: result.items }));
+    } catch {
+      setError('Could not load the audit trail for alert #' + id + '.');
+    } finally {
+      setAuditLoadingId(null);
     }
   };
 
@@ -108,10 +130,25 @@ export function BackendAlertInbox() {
                 <p className="font-bold text-sm mt-1">{alert.title}</p>
                 <p className="text-xs text-slate-500 mt-1">Patient {alert.patient_id} · {new Date(alert.created_at).toLocaleString()}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <button className="btn-secondary !text-xs" aria-expanded={expandedId === alert.id} onClick={() => void showAudit(alert.id)}>
+                  <History size={13} /> Audit trail <ChevronDown size={13} className={expandedId === alert.id ? 'rotate-180' : ''} />
+                </button>
                 {alert.status === 'open' && <button className="btn-secondary !text-xs" disabled={busyId === alert.id} onClick={() => void transition(alert.id, 'acknowledge')}>Acknowledge</button>}
                 {alert.status !== 'resolved' && <button className="btn-primary !text-xs" disabled={busyId === alert.id} onClick={() => void transition(alert.id, 'resolve')}>Resolve</button>}
               </div>
+              {expandedId === alert.id && <div className="w-full basis-full rounded-xl bg-slate-50 dark:bg-slate-800/50 p-3">
+                <p className="text-xs font-bold flex items-center gap-1.5"><History size={13} /> Alert audit timeline</p>
+                {auditLoadingId === alert.id ? <p className="text-xs text-slate-500 mt-2">Loading audit events…</p> :
+                  (auditByAlert[alert.id] ?? []).length === 0 ? <p className="text-xs text-slate-500 mt-2">No audit events returned.</p> :
+                  <ol className="mt-2 space-y-2">
+                    {(auditByAlert[alert.id] ?? []).map((event) => <li key={event.id} className="border-l-2 border-teal-500 pl-3 py-0.5">
+                      <p className="text-xs font-semibold capitalize">{event.action.replace(/_/g, ' ')}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">{event.actor} · {new Date(event.created_at).toLocaleString()}</p>
+                    </li>)}
+                  </ol>}
+                <p className="text-[10px] text-slate-400 mt-2">Demo audit only; the actor label is not verified identity.</p>
+              </div>}
             </article>
           ))}
         </div>
