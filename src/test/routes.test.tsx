@@ -60,12 +60,17 @@ describe('routes render', () => {
     fireEvent.click(btns[0]);
     expect(screen.getAllByText('Acknowledged').length).toBeGreaterThan(0);
   });
-  it('simulation controls start + pause', () => {
-    wrap(<DashboardPage />);
-    expect(screen.getByRole('region', { name: 'Live demo simulation controls' })).toBeTruthy();
-    fireEvent.click(screen.getByText('Start Simulation'));
-    expect(screen.getByText('Pause')).toBeTruthy();
-  });
+  
+it('simulation controls start + pause', () => {
+  wrap(<DashboardPage />);
+  expect(
+    screen.getByRole('region', { name: 'Demo simulation controls' })
+  ).toBeTruthy();
+
+  fireEvent.click(screen.getByText('Start simulation'));
+  expect(screen.getByText('Pause')).toBeTruthy();
+});
+
   it('analytics renders', () => { wrap(<AnalyticsPage />); expect(screen.getAllByText('Analytics').length).toBeGreaterThan(0); expect(screen.getByText('DEMO ANALYTICS')).toBeTruthy(); });
   it('settings renders + theme switching', () => {
     wrap(<SettingsPage />);
