@@ -69,6 +69,7 @@ Copy `.env.example` to `.env` for local development. Vite variables prefixed wit
 - Persistent demo alert lifecycle (open, acknowledged, resolved) with audit trail.
 - Dashboard includes backend alert operations, observation quality, and persisted prediction history. Patient cohort, vital charts and analytics still use local synthetic fixtures.
 - Interactive model evaluation and coefficient-contribution workbench in Settings.
+- Source-documented NEWS2 parameter scoring demo endpoint and Settings calculator; this is not a clinically validated implementation.
 - Deterministic simulator endpoint for stable, worsening, and recovering fictional observation scenarios.
 
 ### Phase 1 API: synthetic observation ingestion
@@ -142,7 +143,7 @@ docs/
 
 ## Live API smoke test
 
-Run `npm run smoke:api` to check health, model metadata, frontend CORS preflight, synthetic prediction and persistence, model evaluation, coefficient contributions, data quality, alert acknowledgement/resolution and audit trail. This writes fictional records to the configured demo database.
+Run `npm run smoke:api` to check health, model metadata, frontend CORS preflight, synthetic prediction and persistence, model evaluation, coefficient contributions, NEWS2 scoring/Scale 2 guard, data quality, alert acknowledgement/resolution and audit trail. This writes fictional records to the configured demo database.
 
 - Workflow: `.github/workflows/live-api-smoke.yml`
 - Script: `scripts/smoke-test.mjs`
