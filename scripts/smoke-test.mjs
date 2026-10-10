@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 
 const baseUrl = (process.env.VITALGUARD_API_URL || 'https://vitalguard-risk-api.onrender.com').replace(/\/$/, '');
 const timeoutMs = 20_000;
+const coldStartTimeoutMs = 60_000;
 
-async function request(path, options = {}) {
+async function request(path, options = {}, timeout = timeoutMs) {
   const response = await fetch(`${baseUrl}${path}`, {
     ...options,
-    signal: AbortSignal.timeout(timeoutMs),
+    signal: AbortSignal.timeout(timeout),
     headers: {
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...(options.headers || {}),
@@ -26,7 +27,23 @@ async function request(path, options = {}) {
 async function main() {
   console.log(`Smoke-testing VitalGuard API: ${baseUrl}`);
 
-  const { data: health } = await request('/health');
+  // Render free instances may need a cold start. Give health checks a longer
+  // timeout and retry transient wake-up/network failures before failing the run.
+  let health;
+  let lastHealthError;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      ({ data: health } = await request('/health', {}, coldStartTimeoutMs));
+      break;
+    } catch (error) {
+      lastHealthError = error;
+      if (attempt < 3) {
+        console.warn(`Health check attempt ${attempt}/3 did not complete; retrying in 5 seconds.`);
+        await new Promise((resolve) => setTimeout(resolve, 5_000));
+      }
+    }
+  }
+  assert.ok(health, `Health endpoint failed after 3 attempts: ${lastHealthError}`);
   assert.equal(health.status, 'ok');
   assert.equal(health.demo_only, true);
   console.log('✓ Health endpoint');
