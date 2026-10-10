@@ -17,9 +17,12 @@ type AlertResponse = { items: BackendAlert[]; count: number; demo_only: true };
 type AuditEvent = { id: number; entity_type: string; entity_id: string; action: string; actor: string; created_at: string; details: Record<string, unknown> };
 
 async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+  // Avoid unnecessary browser CORS preflights on GET requests.
+  if (init?.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   const response = await fetch(`${APP_CONFIG.apiBaseUrl}${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    headers,
     signal: AbortSignal.timeout(8000),
   });
   if (!response.ok) throw new Error(`Alert API request failed (${response.status})`);
