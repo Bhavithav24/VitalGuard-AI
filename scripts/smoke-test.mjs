@@ -206,6 +206,14 @@ async function main() {
   assert.ok(audit.count >= 3, 'Alert audit should include creation, acknowledgement, and resolution');
   console.log('✓ Persistent alert lifecycle and audit trail');
 
+  const { data: timeline } = await request('/api/v1/patients/' + encodeURIComponent(alertPatientId) + '/timeline?limit=20');
+  assert.equal(timeline.demo_only, true);
+  const timelineTypes = new Set(timeline.items.map((item) => item.type));
+  assert.ok(timelineTypes.has('observation'), 'Timeline should contain the prediction observation');
+  assert.ok(timelineTypes.has('alert'), 'Timeline should contain the persistent alert');
+  assert.ok(timelineTypes.has('alert_audit'), 'Timeline should contain alert audit events');
+  console.log('✓ Unified patient observation, alert, and audit timeline');
+
   console.log('All live API smoke checks passed. The test creates only fictional synthetic records. Not for clinical use.');
 }
 
