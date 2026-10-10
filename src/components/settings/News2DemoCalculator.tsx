@@ -52,6 +52,10 @@ export function News2DemoCalculator() {
 
   const calculate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (form.spo2_scale === 2 && !form.scale2_authorized) {
+      setError('Scale 2 requires an explicit acknowledgement that it must only be used under a qualified clinician’s direction.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
