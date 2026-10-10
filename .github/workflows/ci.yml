@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, phase-3-risk-engine]
   pull_request:
-    branches: [main]
+    branches: [main, phase-3-risk-engine]
 
 jobs:
   frontend:
