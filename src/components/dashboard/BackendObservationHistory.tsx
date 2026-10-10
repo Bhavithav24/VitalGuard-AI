@@ -6,6 +6,7 @@ type RecordItem = {
   id: number;
   patient_id: string;
   created_at: string;
+  model_version: string;
   inputs: Record<string, number>;
   prediction: { risk_score: number; risk_level: string; model_version: string };
 };
