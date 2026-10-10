@@ -40,7 +40,7 @@ describe('NEWS2 demo calculator', () => {
     expect(body.scale2_authorized).toBe(false);
   });
 
-  it('requires the explicit acknowledgement checkbox before Scale 2 is sent', async () => {
+  it('blocks Scale 2 until acknowledgement is checked', async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -56,7 +56,11 @@ describe('NEWS2 demo calculator', () => {
     await user.selectOptions(screen.getByLabelText('SpO₂ scoring scale'), '2');
     expect(screen.getByText(/this checkbox is not proof of authorization/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /calculate demo score/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Scale 2 requires an explicit acknowledgement/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: /calculate demo score/i }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
-    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body)).scale2_authorized).toBe(false);
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body)).scale2_authorized).toBe(true);
   });
 });
