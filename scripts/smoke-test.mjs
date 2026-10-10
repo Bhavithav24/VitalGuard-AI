@@ -54,6 +54,15 @@ async function main() {
   assert.ok(Array.isArray(model.features) && model.features.length >= 7);
   console.log('✓ Model metadata and demo disclaimer');
 
+  const { data: evaluation } = await request('/api/v1/model/evaluation');
+  assert.equal(evaluation.demo_only, true);
+  assert.equal(evaluation.clinically_validated, false);
+  assert.equal(evaluation.sample_count, 3000);
+  for (const metric of ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']) {
+    assert.ok(evaluation.metrics[metric] >= 0 && evaluation.metrics[metric] <= 1, 'Invalid synthetic metric: ' + metric);
+  }
+  console.log('✓ Reproducible synthetic holdout evaluation');
+
   const preflight = await fetch(`${baseUrl}/api/v1/risk/predict`, {
     method: 'OPTIONS',
     headers: {
@@ -95,6 +104,19 @@ async function main() {
   assert.ok(prediction.created_at);
   console.log('✓ Prediction response and validation');
 
+  const { data: explanation } = await request('/api/v1/risk/explain', {
+    method: 'POST',
+    body: JSON.stringify({
+      patient_id: patientId, age: 58, heart_rate: 82, spo2: 98,
+      systolic_bp: 122, diastolic_bp: 78, temperature: 37, respiratory_rate: 16,
+    }),
+  });
+  assert.equal(explanation.demo_only, true);
+  assert.equal(explanation.model_version, prediction.model_version);
+  assert.equal(explanation.contributions.length, 7);
+  assert.ok(explanation.caveat.includes('not causal'));
+  console.log('✓ Model contribution endpoint and caveat');
+
   const historyPath = `/api/v1/observations?patient_id=${encodeURIComponent(patientId)}&limit=10`;
   const { data: history } = await request(historyPath);
   assert.equal(history.demo_only, true);
@@ -103,6 +125,11 @@ async function main() {
   assert.equal(history.items[0].patient_id, patientId);
   assert.equal(history.items[0].inputs.spo2, 98);
   console.log('✓ Prediction persisted and returned by history');
+
+  const { data: quality } = await request('/api/v1/observations/quality?stale_after_seconds=300&limit=100');
+  assert.equal(quality.demo_only, true);
+  assert.ok(Array.isArray(quality.items));
+  console.log('✓ Observation freshness and completeness endpoint');
 
   const invalid = await fetch(`${baseUrl}/api/v1/risk/predict`, {
     method: 'POST',
@@ -122,7 +149,30 @@ async function main() {
   assert.equal(invalid.status, 422, 'Out-of-range vitals should be rejected with 422');
   console.log('✓ Invalid input rejected');
 
-  console.log('All live API smoke checks passed, including prediction persistence through the configured storage adapter. Synthetic demo data only; not for clinical use.');
+  const alertPatientId = 'SMOKE-ALERT-' + Date.now();
+  await request('/api/v1/risk/predict', {
+    method: 'POST',
+    body: JSON.stringify({
+      patient_id: alertPatientId, age: 70, heart_rate: 180, spo2: 78,
+      systolic_bp: 80, diastolic_bp: 50, temperature: 39.5, respiratory_rate: 34,
+    }),
+  });
+  const { data: alerts } = await request('/api/v1/alerts?patient_id=' + encodeURIComponent(alertPatientId) + '&limit=10');
+  assert.ok(alerts.items.length > 0, 'Elevated synthetic prediction should create a demo alert');
+  const alertId = alerts.items[0].id;
+  const { data: acknowledged } = await request('/api/v1/alerts/' + alertId + '/acknowledge', {
+    method: 'POST', body: JSON.stringify({ actor: 'smoke-test-demo-operator' }),
+  });
+  assert.equal(acknowledged.item.status, 'acknowledged');
+  const { data: resolved } = await request('/api/v1/alerts/' + alertId + '/resolve', {
+    method: 'POST', body: JSON.stringify({ actor: 'smoke-test-demo-operator' }),
+  });
+  assert.equal(resolved.item.status, 'resolved');
+  const { data: audit } = await request('/api/v1/alerts/' + alertId + '/audit');
+  assert.ok(audit.count >= 3, 'Alert audit should include creation, acknowledgement, and resolution');
+  console.log('✓ Persistent alert lifecycle and audit trail');
+
+  console.log('All live API smoke checks passed. The test creates only fictional synthetic records. Not for clinical use.');
 }
 
 main().catch((error) => {
