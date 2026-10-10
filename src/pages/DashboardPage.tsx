@@ -12,6 +12,7 @@ import { HeroPatient, RecentAlerts, filterCohort } from '../components/dashboard
 import { LiveEcg } from '../components/ui/premium.tsx';
 import { RISK_BANDS } from '../theme/tokens.ts';
 import { useSimulation } from '../store/useSimulation.ts';
+import { DataQualityPanel } from '../components/dashboard/DataQualityPanel.tsx';
 
 export function DashboardPage() {
   const { patients, risks, latest, alerts, tick, running } = useSimulation();
@@ -52,11 +53,12 @@ export function DashboardPage() {
         </div>
       </section>
       <div className="mt-6">
-      <PageHeader eyebrow="Patient monitoring" title="Patient Monitoring Overview"
-        subtitle="Live patient state, risk signals and review priorities in one place."
-        crumbs={[{ label: 'Dashboard' }]} />
+        <PageHeader eyebrow="Patient monitoring" title="Patient Monitoring Overview"
+          subtitle="Live patient state, risk signals and review priorities in one place."
+          crumbs={[{ label: 'Dashboard' }]} />
       </div>
       <div className="mt-5"><SummaryCards patients={patients} risks={risks} openAlerts={openAlerts} /></div>
+      <DataQualityPanel />
       {hero && heroVitals && heroPatient && <HeroPatient hero={hero} vitals={heroVitals} patient={heroPatient} />}
       <div className="mt-4"><FilterBar value={filters} onChange={setFilters} resultCount={filtered.length} /></div>
       <div className="mt-4 grid xl:grid-cols-[minmax(0,1fr)_370px] gap-4 items-start">
@@ -93,4 +95,3 @@ export function DashboardPage() {
     </Shell>
   );
 }
-
