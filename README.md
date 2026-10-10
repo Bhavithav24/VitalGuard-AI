@@ -84,6 +84,14 @@ The synthetic dataset includes stable, worsening and recovering scenarios. These
 - Keep test data synthetic and do not add identifiable patient information.
 - Before deployment, verify the build, tests, environment configuration, API failure handling and all key browser workflows.
 
+## Backend database configuration
+
+- Local development defaults to a SQLite file at `backend/vitalguard_demo.sqlite3`.
+- Hosted deployments can set `DATABASE_URL` to a PostgreSQL connection string. The adapter normalizes Render-style `postgres://` and standard `postgresql://` URLs to the installed psycopg 3 driver.
+- Do not commit database credentials. Set `DATABASE_URL` only in the backend service's private environment settings.
+- The hosted PostgreSQL database must be provisioned separately and configured on the backend service before hosted history is durable across instance replacement. Existing SQLite records are not automatically migrated.
+- This database adapter is for synthetic demonstration data only; it is not a production patient-record system.
+
 ## Live API smoke test
 
 A manually triggered GitHub Actions workflow checks the deployed API's health endpoint, model metadata, frontend CORS preflight, synthetic prediction response, persisted observation history, and invalid-input rejection. It uses a unique `SMOKE-*` demo patient ID and synthetic values only.
