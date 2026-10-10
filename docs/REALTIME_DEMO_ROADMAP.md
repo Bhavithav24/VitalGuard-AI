@@ -57,7 +57,7 @@
 3. Add durable cross-instance event delivery if scaling beyond one backend instance.
 4. Add production-grade observability, request limits, security review, dependency remediation, and operational incident procedures.
 5. Keep local synthetic patient lists/charts/analytics visibly separate from backend-persisted observations. Not all dashboard views consume the backend API.
-6. Do not claim NEWS2 compliance, SHAP, clinical accuracy, or patient deterioration prediction until implemented from reviewed specifications and evaluated on appropriately authorized, representative data with suitable governance.
+6. Do not claim clinical NEWS2 compliance, SHAP, clinical accuracy, or patient deterioration prediction until independently verified against reviewed specifications and evaluated on appropriately authorized, representative data with suitable governance.
 
 ## Safety boundary
 

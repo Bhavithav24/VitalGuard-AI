@@ -63,6 +63,40 @@ async function main() {
   }
   console.log('✓ Reproducible synthetic holdout evaluation');
 
+  const { data: news2 } = await request('/api/v1/scores/news2', {
+    method: 'POST',
+    body: JSON.stringify({
+      patient_id: 'SMOKE-NEWS2-' + Date.now(),
+      respiratory_rate: 16,
+      spo2: 98,
+      systolic_bp: 120,
+      heart_rate: 80,
+      temperature: 37,
+      consciousness: 'alert',
+      supplemental_oxygen: false,
+      spo2_scale: 1,
+      scale2_authorized: false,
+    }),
+  });
+  assert.equal(news2.demo_only, true);
+  assert.equal(news2.clinically_validated_implementation, false);
+  assert.equal(news2.total_score, 0);
+  assert.equal(news2.parameter_scores.supplemental_oxygen, 0);
+  console.log('✓ NEWS2 scoring demo endpoint and disclaimer');
+
+  const scale2Denied = await fetch(baseUrl + '/api/v1/scores/news2', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      patient_id: 'SMOKE-NEWS2-DENIED', respiratory_rate: 16, spo2: 90,
+      systolic_bp: 120, heart_rate: 80, temperature: 37, consciousness: 'alert',
+      supplemental_oxygen: false, spo2_scale: 2, scale2_authorized: false,
+    }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  assert.equal(scale2Denied.status, 422, 'NEWS2 Scale 2 should require explicit authorization assertion');
+  console.log('✓ NEWS2 Scale 2 authorization gate');
+
   const preflight = await fetch(`${baseUrl}/api/v1/risk/predict`, {
     method: 'OPTIONS',
     headers: {
