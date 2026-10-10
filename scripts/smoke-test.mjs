@@ -160,6 +160,15 @@ async function main() {
   assert.equal(history.items[0].inputs.spo2, 98);
   console.log('✓ Prediction persisted and returned by history');
 
+  const trendPath = '/api/v1/observations/trends?patient_id=' + encodeURIComponent(patientId) + '&limit=50';
+  const { data: trends } = await request(trendPath);
+  assert.equal(trends.demo_only, true);
+  assert.equal(trends.patient_id, patientId);
+  assert.equal(trends.observation_count, 1);
+  assert.ok(Array.isArray(trends.trends));
+  assert.ok(trends.trends.every((item) => item.status === 'insufficient_data'));
+  console.log('✓ Descriptive trend endpoint and insufficient-history state');
+
   const { data: quality } = await request('/api/v1/observations/quality?stale_after_seconds=300&limit=100');
   assert.equal(quality.demo_only, true);
   assert.ok(Array.isArray(quality.items));
