@@ -2,13 +2,13 @@
   "name": "vitalguard-ai-frontend",
   "private": true,
   "version": "0.1.0",
-  "description": "VitalGuard AI \u2014 AI-assisted clinical decision-support frontend prototype (demo, synthetic data only)",
+  "description": "VitalGuard AI — AI-assisted clinical decision-support frontend prototype (demo, synthetic data only)",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b --pretty false && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run src",
     "lint": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit"
   },
   "dependencies": {
