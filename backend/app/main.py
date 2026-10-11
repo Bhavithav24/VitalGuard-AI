@@ -42,7 +42,7 @@ app.include_router(simulator_router)
 app.include_router(alert_router)
 app.include_router(timeline_router)
 app.include_router(trend_router)
-_default_origins = ["http://localhost:5173", "http://127.0.0.1:5173", "https://vitalguard-ai-g215.onrender.com"]
+_default_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 _origins = os.getenv("CORS_ORIGINS", ",".join(_default_origins))
 app.add_middleware(CORSMiddleware, allow_origins=[origin.strip() for origin in _origins.split(",") if origin.strip()],
     allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type", "Authorization"])
@@ -164,11 +164,11 @@ async def live_socket(websocket: WebSocket, ticket: str | None = Query(default=N
         if not ticket:
             raise HTTPException(status_code=401, detail="WebSocket ticket required")
         access_token = _consume_ws_ticket(ticket)
-        validate_access_token(access_token)
+        principal = validate_access_token(access_token)
     except HTTPException:
         await websocket.close(code=1008, reason="Authentication required")
         return
-    await hub.serve(websocket)
+    await hub.serve(websocket, principal["scope"])
 
 @app.get("/api/v1/model/info")
 def model_info(principal: dict = Depends(authenticate_principal)):
@@ -231,7 +231,9 @@ def observation_history(patient_id: str | None = Query(default=None, min_length=
         "demo_only": True, "disclaimer": "Synthetic demonstration records only; not for clinical use."}
 
 @app.get("/api/v1/observations/quality")
-def observation_quality(stale_after_seconds: int = Query(default=300, ge=30, le=86400),
+def observation_quality(patient_id: str = Query(min_length=1, max_length=64),
+    stale_after_seconds: int = Query(default=300, ge=30, le=86400),
     limit: int = Query(default=100, ge=1, le=100), principal: dict = Depends(authenticate_principal)):
-    records = list_observations(limit=limit)
+    require_patient_access(patient_id, principal)
+    records = list_observations(patient_id=patient_id, limit=limit)
     return assess_observations(records, stale_after_seconds=stale_after_seconds)
