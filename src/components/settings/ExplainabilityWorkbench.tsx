@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, FlaskConical, LoaderCircle } from 'lucide-react';
 import { APP_CONFIG } from '../../services/config.ts';
+import { authorizedFetch } from '../../services/authenticatedFetch.ts';
 
 type Vitals = {
   patient_id: string;
@@ -58,7 +59,7 @@ export function ExplainabilityWorkbench() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`${APP_CONFIG.apiBaseUrl}/api/v1/risk/explain`, {
+      const response = await authorizedFetch(`${APP_CONFIG.apiBaseUrl}/api/v1/risk/explain`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(vitals),
