@@ -37,8 +37,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthState | null>(() => readSession());
 
   const logout = useCallback(() => {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
     sessionStorage.removeItem(STORAGE_KEY);
     setSession(null);
+    if (!raw) return;
+    try {
+      const saved = JSON.parse(raw) as { token?: string };
+      if (saved.token) {
+        void fetch(`${APP_CONFIG.apiBaseUrl}/api/v1/auth/logout`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${saved.token}` },
+          keepalive: true,
+        }).catch(() => undefined);
+      }
+    } catch { /* local logout already completed */ }
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
