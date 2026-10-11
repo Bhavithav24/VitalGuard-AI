@@ -1,9 +1,12 @@
 import { Pause, Play, RotateCcw, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSimulation } from '../../store/useSimulation.ts';
+import { useAuth } from '../../store/AuthContext.tsx';
 
 export function SimBar() {
   const { running, start, pause, reset, speed, setSpeed, multiplier, setMultiplier, tick, risks } = useSimulation();
+  const { role } = useAuth();
+  const canControl = role === "admin" || role === "operator";
   const hero = risks['P-SIM-003'];
   return (
     <div className="px-4 md:px-8 pt-4">
@@ -27,7 +30,7 @@ export function SimBar() {
             </p>
           </div>
         </div>
-        <div className="relative ml-auto flex flex-wrap items-center gap-2">
+        {canControl && <div className="relative ml-auto flex flex-wrap items-center gap-2">
           {!running ? (
             <button onClick={start} className="btn-primary !py-1.5 !shadow-none"> <Play size={15} aria-hidden /> Start simulation</button>
           ) : (
