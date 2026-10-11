@@ -1,7 +1,7 @@
 # VitalGuard AI — Master Delivery Plan
 
 **Last updated:** 2026-10-11  
-**Current delivery phase:** Phase 1 — Product requirements and safety boundaries  
+**Current delivery phase:** Phase 2 complete — architecture, API contracts and data model documented  
 **Current system status:** Synthetic-data prototype; not approved for clinical use.
 
 ## Delivery rule
@@ -14,7 +14,7 @@ Work in order. For each phase: inspect current repository and deployed state; im
 |---|---|---|
 | 0 | Repository/deployment audit and baseline | Audit report, service/branch inventory, gaps and unverified checks documented |
 | 1 | Requirements and safety boundaries | Product requirements, role needs, data policy, edge cases, clinical/model safety boundaries |
-| 2 | Architecture, API contracts and data model | Versioned schemas, endpoint contract, threat/data-flow diagrams, compatibility plan |
+| 2 | Architecture, API contracts and data model | **Documentation baseline committed**: topology/trust boundaries, source-verified endpoint inventory, target error/observation contracts, current-vs-target data model. Runtime contract tests and physical migrations remain later work. |
 | 3 | Authentication and secure identity | Secure login/session lifecycle, account disablement, secrets and session tests |
 | 4 | Authorization and audit | Server-enforced roles/resource scope, deny-by-default, immutable security-relevant audit events |
 | 5 | Durable database and migrations | Managed PostgreSQL configured privately, migrations, indexes, backup/restore and retention evidence |
@@ -51,6 +51,9 @@ A phase is not done until its exit evidence is recorded in the repository. A pro
 - Backend: https://vitalguard-risk-api.onrender.com (Render branch `phase-3-risk-engine`).
 - Source-level Phase 0 audit: [PHASE_0_AUDIT.md](PHASE_0_AUDIT.md).
 - Phase 1 requirements: [PHASE_1_REQUIREMENTS.md](PHASE_1_REQUIREMENTS.md).
+- Phase 2 architecture: [PHASE_2_ARCHITECTURE.md](PHASE_2_ARCHITECTURE.md).
+- Phase 2 API contracts: [PHASE_2_API_CONTRACTS.md](PHASE_2_API_CONTRACTS.md).
+- Phase 2 data model: [PHASE_2_DATA_MODEL.md](PHASE_2_DATA_MODEL.md).
 - Existing feature roadmap: [REALTIME_DEMO_ROADMAP.md](REALTIME_DEMO_ROADMAP.md).
 - Release runbook: [RENDER_RELEASE_RUNBOOK.md](RENDER_RELEASE_RUNBOOK.md).
 - The model is synthetic-data LogisticRegression and is not clinically validated.
@@ -58,6 +61,14 @@ A phase is not done until its exit evidence is recorded in the repository. A pro
 - Authentication and server-side authorization are not established in the inspected backend.
 - The WebSocket event hub is in-process/single-instance; some frontend data remains synthetic fixture data.
 - No real patient data is authorized for the current public demo.
+
+## Phase 2 status and verification
+
+- Architecture/trust-boundary, API-contract inventory and logical data-model documents are committed.
+- Compared the documented current contracts with the inspected backend entry point, Pydantic schemas, simulator route, storage adapter and frontend API client.
+- Documentation-only phase: application code and runtime behavior were not changed; application test suites and live smoke tests were not run as part of Phase 2.
+- The target contract is a design baseline, not a claim that authentication, idempotency, standardized error envelopes, database migrations or durable event delivery already exist.
+- Phase 2 documentation PR: [#44](https://github.com/parthiv-doraswamy/VitalGuard-AI/pull/44), merged as `523e8b22820a59afeb9ea15723e5aebb4b8be40c`.
 
 ## Data and clinical safety boundary
 
