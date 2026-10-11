@@ -2,6 +2,7 @@
 from __future__ import annotations
 import json
 from typing import Any
+from datetime import timezone
 from sqlalchemy import insert, select, update, desc
 from sqlalchemy.exc import IntegrityError
 from .storage import _engine
@@ -14,7 +15,10 @@ def _serialize(row: Any) -> dict:
     item = dict(row)
     for key in ("created_at", "acknowledged_at", "resolved_at"):
         if item.get(key) is not None and hasattr(item[key], "isoformat"):
-            item[key] = item[key].isoformat()
+            value = item[key]
+            if getattr(value, "tzinfo", None) is None:
+                value = value.replace(tzinfo=timezone.utc)
+            item[key] = value.isoformat()
     item["details"] = json.loads(item.pop("details_json"))
     return item
 
