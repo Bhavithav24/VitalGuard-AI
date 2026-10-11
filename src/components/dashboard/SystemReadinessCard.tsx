@@ -42,7 +42,7 @@ export function SystemReadinessCard() {
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
-            ['API', checks?.database === 'ok'],
+            ['API', checks?.api === 'ok'],
             ['Database', checks?.database === 'ok'],
             ['Model', checks?.model_loaded],
             ['Auth', checks?.operator_auth_configured],
