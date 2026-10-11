@@ -114,6 +114,7 @@ def operational_readiness(principal: dict = Depends(authenticate_principal)):
     return {
         "status": "ready" if ready else "degraded",
         "checks": {
+            "api": "ok",
             "database": database_status,
             "operator_auth_configured": auth_configured,
             "model_loaded": True,
