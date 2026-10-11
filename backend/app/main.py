@@ -169,7 +169,7 @@ def model_info(principal: dict = Depends(authenticate_principal)):
         "training_data": "generated synthetic observations only", "demo_only": True, "clinically_validated": False}
 
 @app.post("/api/v1/scores/news2")
-def calculate_news2(payload: NEWS2Input, principal: dict = Depends(authenticate_principal)):
+def calculate_news2(payload: NEWS2Input, principal: dict = Depends(require_roles("admin", "operator"))):
     """Calculate parameter points for a fictional NEWS2 example; not clinical guidance."""
     return score_news2(payload.model_dump(exclude={"patient_id", "scale2_authorized"}))
 
@@ -183,7 +183,7 @@ def model_validation_diagnostics(principal: dict = Depends(authenticate_principa
     return evaluate_synthetic_calibration_and_subgroups()
 
 @app.post("/api/v1/risk/predict", response_model=RiskPrediction)
-async def predict(payload: VitalInput, principal: dict = Depends(authenticate_principal)):
+async def predict(payload: VitalInput, principal: dict = Depends(require_roles("admin", "operator"))):
     values = payload.model_dump(exclude={"patient_id"})
     probability = predict_probability(values)
     score = round(probability * 100)
@@ -199,7 +199,7 @@ async def predict(payload: VitalInput, principal: dict = Depends(authenticate_pr
     return response
 
 @app.post("/api/v1/risk/explain")
-def explain_risk(payload: VitalInput, principal: dict = Depends(authenticate_principal)):
+def explain_risk(payload: VitalInput, principal: dict = Depends(require_roles("admin", "operator", "viewer"))):
     values = payload.model_dump(exclude={"patient_id"})
     return {"patient_id": payload.patient_id, "model_version": MODEL_VERSION,
         "risk_score": round(predict_probability(values) * 100),
