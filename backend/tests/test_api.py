@@ -225,3 +225,43 @@ def test_role_authorization_rejects_viewer_for_operator_action(client, monkeypat
     identity = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert identity.status_code == 200
     assert identity.json()["role"] == "viewer"
+
+
+def test_viewer_cannot_write_prediction(client, monkeypatch):
+    monkeypatch.setenv("VITALGUARD_AUTH_ROLE", "viewer")
+    login = client.post("/api/v1/auth/login", json={
+        "username": "demo-operator", "password": "a-long-demo-password"
+    })
+    assert login.status_code == 200
+    response = client.post(
+        "/api/v1/risk/predict",
+        json=valid_payload(),
+        headers={"Authorization": f"Bearer {login.json()['access_token']}"},
+    )
+    assert response.status_code == 403
+
+
+def test_viewer_can_read_observations(client, monkeypatch):
+    monkeypatch.setenv("VITALGUARD_AUTH_ROLE", "viewer")
+    login = client.post("/api/v1/auth/login", json={
+        "username": "demo-operator", "password": "a-long-demo-password"
+    })
+    assert login.status_code == 200
+    response = client.get(
+        "/api/v1/observations",
+        headers={"Authorization": f"Bearer {login.json()['access_token']}"},
+    )
+    assert response.status_code == 200
+
+
+def test_password_hash_authentication(client, monkeypatch):
+    monkeypatch.setenv(
+        "VITALGUARD_AUTH_PASSWORD_HASH",
+        "pbkdf2_sha256$210000$ODFe0akr--OGxcqsk4gygQ$aFcuHYhvwRSWs6cGLgrBAv931ThLm8x_knGymjIf7eY",
+    )
+    monkeypatch.delenv("VITALGUARD_AUTH_PASSWORD", raising=False)
+    login = client.post("/api/v1/auth/login", json={
+        "username": "demo-operator", "password": "VitalGuardDemo2026!"
+    })
+    assert login.status_code == 200
+    assert login.json()["role"] == "admin"
