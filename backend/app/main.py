@@ -7,6 +7,7 @@ from collections import Counter
 from fastapi import FastAPI, Query, WebSocket, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.requests import Request
+from starlette.responses import PlainTextResponse
 from .model import MODEL_VERSION, explain, predict_probability, risk_level
 from .model_evaluation import coefficient_contributions, evaluate_synthetic_holdout
 from .validation_diagnostics import evaluate_synthetic_calibration_and_subgroups
@@ -21,7 +22,7 @@ from .alert_service import create_alert
 from .data_quality import assess_observations
 from .live_events import hub
 from .storage import database_health, initialize_storage, list_observations, save_observation
-from .auth import router as auth_router, authenticate_principal, require_roles
+from .auth import router as auth_router, authenticate_principal, require_roles, require_patient_access, _consume_ws_ticket, validate_access_token
 from .ingestion_routes import router as ingestion_router
 
 @asynccontextmanager

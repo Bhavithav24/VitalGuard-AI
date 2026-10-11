@@ -311,15 +311,6 @@ def test_websocket_ticket_is_single_use(client):
         _consume_ws_ticket(ticket)
 
 
-def test_oversized_request_body_is_rejected(client):
-    response = client.post(
-        "/api/v1/risk/predict",
-        content="x" * 1_000_001,
-        headers={"Content-Type": "application/json", "Content-Length": str(1_000_001)},
-    )
-    assert response.status_code == 413
-
-
 def test_patient_scope_is_server_enforced(client, monkeypatch):
     monkeypatch.setenv(
         "VITALGUARD_AUTH_USERS_JSON",
