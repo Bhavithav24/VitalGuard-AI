@@ -265,3 +265,27 @@ def test_password_hash_authentication(client, monkeypatch):
     })
     assert login.status_code == 200
     assert login.json()["role"] == "admin"
+
+
+def test_auth_requires_bearer_token(client):
+    response = client.get("/api/v1/observations", headers={"Authorization": ""})
+    assert response.status_code == 401
+
+
+def test_logout_revokes_access_token(client):
+    login = client.post("/api/v1/auth/login", json={
+        "username": "demo-operator", "password": "a-long-demo-password"
+    })
+    token = login.json()["access_token"]
+    logout = client.post("/api/v1/auth/logout", headers={"Authorization": f"Bearer {token}"})
+    assert logout.status_code == 204
+    revoked = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert revoked.status_code == 401
+
+
+def test_role_permissions_endpoint_reports_current_role(client):
+    response = client.get("/api/v1/auth/roles")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["current_role"] == "admin"
+    assert set(body["roles"]) == {"admin", "operator", "viewer"}
