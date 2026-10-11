@@ -68,7 +68,7 @@ def test_escalation_preview_does_not_expose_out_of_scope_alerts(scoped_client):
     assert allowed and denied
     response = scoped_client.get("/api/v1/alerts/escalation-preview")
     assert response.status_code == 200
-    assert all(item["patient_id"].startswith("DEMO-TEAM-A-") for item in response.json()["items"])
+    assert [item["alert_id"] for item in response.json()["items"]] == [allowed["id"]]
 
 
 def test_realtime_events_are_filtered_by_patient_scope():
