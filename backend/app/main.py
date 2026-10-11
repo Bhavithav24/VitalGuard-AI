@@ -27,7 +27,11 @@ from .ingestion_routes import router as ingestion_router
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     initialize_storage()
-    yield
+    await hub.start()
+    try:
+        yield
+    finally:
+        await hub.stop()
 
 app = FastAPI(title="VitalGuard AI Risk Engine", version="0.8.0",
     description="Synthetic demo risk API. Not clinically validated and not for clinical use.", lifespan=lifespan)
