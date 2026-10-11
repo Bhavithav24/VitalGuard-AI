@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, ConfigDict, Field
 from .alert_service import get_alert, list_alerts, list_alert_audit, transition_alert
-from .auth import authenticate_principal, patient_access_allowed, require_roles, require_patient_access
+from .auth import authenticate_principal, patient_scope_prefixes, require_roles, require_patient_access
 from .escalation_policy import evaluate_escalation
 
 router = APIRouter(prefix="/api/v1/alerts", tags=["alerts"], dependencies=[Depends(authenticate_principal)])
@@ -18,14 +18,13 @@ def get_alerts(status: Literal["open", "acknowledged", "resolved"] | None = None
                limit: int = Query(default=50, ge=1, le=100), principal: dict = Depends(authenticate_principal)):
     if patient_id:
         require_patient_access(patient_id, principal)
-    items = list_alerts(status=status, patient_id=patient_id, limit=limit)
+    items = list_alerts(status=status, patient_id=patient_id, limit=limit, patient_prefixes=patient_scope_prefixes(principal))
     return {"items": items, "count": len(items), "demo_only": True}
 
 @router.get("/escalation-preview")
 def get_escalation_preview(limit: int = Query(default=100, ge=1, le=100),
                            principal: dict = Depends(authenticate_principal)):
-    items = [item for item in list_alerts(status="open", limit=limit)
-             if patient_access_allowed(principal, item["patient_id"])]
+    items = list_alerts(status="open", limit=limit, patient_prefixes=patient_scope_prefixes(principal))
     previews = [evaluate_escalation(item) for item in items]
     due = [item for item in previews if item["review_due"]]
     return {"items": previews, "count": len(previews), "due_count": len(due),
