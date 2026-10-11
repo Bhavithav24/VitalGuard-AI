@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
 :root { color-scheme: light; --vg-teal: #0d9488; --vg-ink: #142238; --vg-canvas: #f5f8fb; --vg-border: #e3eaf1; }
 body { @apply bg-[#f5f8fb] text-slate-900 antialiased; font-feature-settings: "tnum" 1, "cv05" 1; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
 .dark body, .dark { color-scheme: dark; }
