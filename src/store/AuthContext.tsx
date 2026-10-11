@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { APP_CONFIG } from '../services/config.ts';
 
-type AuthState = { token: string; username: string; expiresAt: number };
-type AuthContextValue = { token: string | null; username: string | null; login: (username: string, password: string) => Promise<void>; logout: () => void };
+type AuthState = { token: string; username: string; role: 'admin' | 'operator' | 'viewer'; expiresAt: number };
+type AuthContextValue = { token: string | null; username: string | null; role: AuthState['role'] | null; login: (username: string, password: string) => Promise<void>; logout: () => void };
 const STORAGE_KEY = 'vitalguard.operator.session';
 const AuthContext = createContext<AuthContextValue | null>(null);
 function readSession(): AuthState | null {
@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
   const value = useMemo(() => ({
     token: session && session.expiresAt > Date.now() ? session.token : null,
-    username: session && session.expiresAt > Date.now() ? session.username : null, login, logout,
+    username: session && session.expiresAt > Date.now() ? session.username : null, role: session && session.expiresAt > Date.now() ? session.role : null, login, logout,
   }), [session, login, logout]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
