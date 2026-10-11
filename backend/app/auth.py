@@ -14,7 +14,7 @@ import time
 import secrets
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from pydantic import BaseModel, ConfigDict, Field
@@ -160,9 +160,10 @@ def _check_login_rate_limit(client_key: str) -> None:
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest) -> TokenResponse:
+def login(request: Request, payload: LoginRequest) -> TokenResponse:
     _, _, _, secret, _ = _credentials()
-    _check_login_rate_limit(payload.username.lower())
+    client_host = request.client.host if request.client else "unknown"
+    _check_login_rate_limit(f"{client_host}:{payload.username.lower()}")
     account = next((item for item in _accounts() if hmac.compare_digest(payload.username, item["username"])), None)
     if account is None or not _verify_password(payload.password, account):
         raise HTTPException(status_code=401, detail="Invalid username or password", headers={"WWW-Authenticate": "Bearer"})
