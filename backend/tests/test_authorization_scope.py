@@ -89,3 +89,45 @@ def test_realtime_events_are_filtered_by_patient_scope():
         assert len(allowed.events) == 1
 
     asyncio.run(scenario())
+
+
+def test_unscoped_observation_history_is_filtered(scoped_client):
+    allowed = scoped_client.post(
+        "/api/v1/risk/predict",
+        json={
+            "patient_id": "DEMO-TEAM-A-001",
+            "age": 58,
+            "heart_rate": 82,
+            "spo2": 98,
+            "systolic_bp": 122,
+            "diastolic_bp": 78,
+            "temperature": 37,
+            "respiratory_rate": 16,
+        },
+    )
+    assert allowed.status_code == 200
+    response = scoped_client.get("/api/v1/observations")
+    assert response.status_code == 200
+    assert all(item["patient_id"].startswith("DEMO-TEAM-A-") for item in response.json()["items"])
+
+
+def test_unscoped_alert_listing_is_filtered(scoped_client):
+    allowed = create_alert(
+        patient_id="DEMO-TEAM-A-003",
+        event_key="scope-test-list-allowed",
+        severity="high",
+        title="Allowed list alert",
+        details={"demo_only": True},
+    )
+    denied = create_alert(
+        patient_id="DEMO-OTHER-003",
+        event_key="scope-test-list-denied",
+        severity="high",
+        title="Denied list alert",
+        details={"demo_only": True},
+    )
+    assert allowed and denied
+    response = scoped_client.get("/api/v1/alerts")
+    assert response.status_code == 200
+    assert all(item["patient_id"].startswith("DEMO-TEAM-A-") for item in response.json()["items"])
+    assert denied["id"] not in [item["id"] for item in response.json()["items"]]
