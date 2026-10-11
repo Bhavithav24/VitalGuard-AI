@@ -37,7 +37,20 @@ export function createLiveSocket(onEvent: (event: LiveEvent) => void, onStatus: 
         onStatus('offline');
         return;
       }
-      socket = new WebSocket(`${wsBase}/api/v1/live?token=${encodeURIComponent(token)}`);
+      const ticketResponse = await authorizedFetch(`${base}/api/v1/auth/ws-ticket`, {
+        method: 'POST',
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!ticketResponse.ok) {
+        if (ticketResponse.status === 401) {
+          onStatus('offline');
+          return;
+        }
+        throw new Error('WebSocket ticket request failed');
+      }
+      const { ticket } = await ticketResponse.json() as { ticket?: string };
+      if (!ticket) throw new Error('WebSocket ticket missing');
+      socket = new WebSocket(`${wsBase}/api/v1/live?ticket=${encodeURIComponent(ticket)}`);
     } catch {
       scheduleRetry();
       return;
