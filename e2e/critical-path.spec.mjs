@@ -56,3 +56,9 @@ test('mobile navigation opens and routes to Settings', async ({ page }) => {
   await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Settings', exact: false }).click();
   await expect(page.locator('#main-content').getByRole('heading', { name: 'Settings', exact: true }).first()).toBeVisible();
 });
+
+test('protected routes redirect unauthenticated users to login', async ({ page }) => {
+  await page.goto('/#/settings');
+  await expect(page).toHaveURL(/#\/login$/);
+  await expect(page.getByRole('heading', { name: /sign in/i })).toBeVisible();
+});
