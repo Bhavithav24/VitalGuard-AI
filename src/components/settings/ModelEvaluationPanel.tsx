@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Activity, AlertTriangle, RefreshCw, Scale } from 'lucide-react';
 import { APP_CONFIG } from '../../services/config.ts';
+import { authorizedFetch } from '../../services/authenticatedFetch.ts';
 
 type Evaluation = {
   model_version: string;
@@ -23,7 +24,7 @@ export function ModelEvaluationPanel() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${APP_CONFIG.apiBaseUrl}/api/v1/model/evaluation`, { signal: AbortSignal.timeout(10000) });
+      const response = await authorizedFetch(`${APP_CONFIG.apiBaseUrl}/api/v1/model/evaluation`, { signal: AbortSignal.timeout(10000) });
       if (!response.ok) throw new Error('Evaluation endpoint unavailable');
       setReport(await response.json() as Evaluation);
       setError('');
