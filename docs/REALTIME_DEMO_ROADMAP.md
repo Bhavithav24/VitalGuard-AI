@@ -100,3 +100,17 @@
 ## Safety boundary
 
 Never use real patient data. Missing or stale observations are unknown, not normal. Synthetic model metrics do not establish clinical performance, calibration, or safety. This prototype must not be used for diagnosis, triage, or treatment decisions.
+
+
+---
+
+## Production-readiness plan cross-reference
+
+This document preserves the **legacy feature implementation phases** for already-built demo functionality. These numbers are not the same as the sequential production-readiness phases.
+
+For the current delivery sequence, see:
+- [Master delivery plan](MASTER_DELIVERY_PLAN.md) — phases 0–20, release gates and known blockers.
+- [Phase 0 repository/deployment audit](PHASE_0_AUDIT.md).
+- [Phase 1 product requirements and safety boundaries](PHASE_1_REQUIREMENTS.md).
+
+The next implementation work follows the master delivery plan, not by blindly continuing legacy feature phase numbering. No phase is considered complete until its exit evidence is recorded.
