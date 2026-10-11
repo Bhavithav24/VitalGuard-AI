@@ -1,12 +1,12 @@
 import { Pause, Play, RotateCcw, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSimulation } from '../../store/useSimulation.ts';
-import { useAuth } from '../../store/AuthContext.tsx';
+import { useOptionalAuth } from '../../store/AuthContext.tsx';
 
 export function SimBar() {
   const { running, start, pause, reset, speed, setSpeed, multiplier, setMultiplier, tick, risks } = useSimulation();
-  const { role } = useAuth();
-  const canControl = role === "admin" || role === "operator";
+  const auth = useOptionalAuth();
+  const canControl = !auth || auth.role === "admin" || auth.role === "operator";
   const hero = risks['P-SIM-003'];
   return (
     <div className="px-4 md:px-8 pt-4">
