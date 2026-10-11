@@ -1,53 +1,33 @@
-name: Dependency hardening validation
+name: Dependency security audit
 
 on:
   push:
-    branches: ["security/dependency-hardening-2026-10"]
+    branches: [main]
+    paths:
+      - package.json
+      - package-lock.json
+      - .github/workflows/dependency-hardening.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - package.json
+      - package-lock.json
+      - .github/workflows/dependency-hardening.yml
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  refresh-and-verify:
+  audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: security/dependency-hardening-2026-10
-          fetch-depth: 0
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-
-      - name: Refresh lockfile
-        run: npm install --package-lock-only --ignore-scripts
-
-      - name: Install exact dependency tree
-        run: npm ci
-
+      - run: npm ci
       - name: Security audit
         run: npm audit --audit-level=moderate
-
-      - name: Typecheck
-        run: npm run lint
-
-      - name: Unit tests
-        run: npm test
-
-      - name: Production build
-        run: npm run build
-
-      - name: Commit refreshed lockfile
-        run: |
-          if git diff --quiet -- package-lock.json; then
-            echo "Lockfile already current."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          git commit -m "chore: refresh dependency lockfile"
-          git push origin HEAD:security/dependency-hardening-2026-10
