@@ -1,12 +1,14 @@
 import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext.tsx';
 export function LoginPage() {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [username, setUsername] = useState(''); const [password, setPassword] = useState('');
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(''); setBusy(true);
-    try { await login(username.trim(), password); }
+    try { await login(username.trim(), password); navigate('/dashboard', { replace: true }); }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to sign in.'); }
     finally { setBusy(false); }
   }
