@@ -162,7 +162,8 @@ def _check_login_rate_limit(client_key: str) -> None:
 def login(request: Request, payload: LoginRequest) -> TokenResponse:
     _, _, _, secret, _ = _credentials()
     client_host = request.client.host if request.client else "unknown"
-    _check_login_rate_limit(f"{client_host}:{payload.username.lower()}")
+    client_key = f"{client_host}:{payload.username.lower()}"
+    _check_login_rate_limit(client_key)
     account = next((item for item in _accounts() if hmac.compare_digest(payload.username, item["username"])), None)
     if account is None or not _verify_password(payload.password, account):
         recent = _login_attempts.get(client_key, [])
