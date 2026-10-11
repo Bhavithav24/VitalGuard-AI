@@ -66,6 +66,16 @@ def list_alerts(status: str | None = None, patient_id: str | None = None, limit:
         engine.dispose()
 
 
+def get_alert(alert_id: int) -> dict | None:
+    engine = _engine()
+    try:
+        with engine.connect() as connection:
+            row = connection.execute(select(alerts).where(alerts.c.id == alert_id)).mappings().first()
+            return _serialize(row) if row else None
+    finally:
+        engine.dispose()
+
+
 def transition_alert(alert_id: int, action: str, actor: str) -> dict | None:
     if action not in {"acknowledge", "resolve"}:
         raise ValueError("Unsupported alert action")
