@@ -161,6 +161,12 @@ def authenticate_principal(
     return validate_access_token(credentials.credentials)
 
 
+def patient_scope_prefixes(principal: dict[str, str]) -> list[str] | None:
+    """Return database-filterable patient prefixes, or None for unrestricted scope."""
+    scope = [prefix for prefix in principal.get("scope", "*").split(",") if prefix]
+    return None if "*" in scope else scope
+
+
 def patient_access_allowed(principal: dict[str, str], patient_id: str) -> bool:
     scope = [prefix for prefix in principal.get("scope", "*").split(",") if prefix]
     return "*" in scope or any(patient_id.startswith(prefix) for prefix in scope)
