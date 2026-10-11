@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AlertTriangle, Calculator, LoaderCircle } from 'lucide-react';
 import { APP_CONFIG } from '../../services/config.ts';
+import { authorizedFetch } from '../../services/authenticatedFetch.ts';
 
 type FormValues = {
   patient_id: string;
@@ -59,7 +60,7 @@ export function News2DemoCalculator() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`${APP_CONFIG.apiBaseUrl}/api/v1/scores/news2`, {
+      const response = await authorizedFetch(`${APP_CONFIG.apiBaseUrl}/api/v1/scores/news2`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
