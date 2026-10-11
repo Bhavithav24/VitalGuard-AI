@@ -4,7 +4,7 @@ import json
 import os
 from pathlib import Path
 from typing import Any
-from sqlalchemy import Column, DateTime, Index, Integer, MetaData, String, Table, Text, create_engine, func, insert, select, text
+from sqlalchemy import Column, DateTime, Index, Integer, MetaData, String, Table, Text, create_engine, func, insert, select, text, or_
 from sqlalchemy.engine import Engine
 
 _DEFAULT_DB = Path(__file__).resolve().parents[1] / "vitalguard_demo.sqlite3"
@@ -88,13 +88,17 @@ def save_observation(patient_id: str, inputs: dict[str, Any], prediction: dict[s
         engine.dispose()
 
 
-def list_observations(patient_id: str | None = None, limit: int = 50, before_id: int | None = None) -> list[dict[str, Any]]:
+def list_observations(patient_id: str | None = None, limit: int = 50, before_id: int | None = None, patient_prefixes: list[str] | None = None) -> list[dict[str, Any]]:
     engine = _engine()
     try:
         _ensure_schema(engine)
         query = select(_OBSERVATIONS)
         if patient_id is not None:
             query = query.where(_OBSERVATIONS.c.patient_id == patient_id)
+        elif patient_prefixes is not None:
+            if not patient_prefixes:
+                return []
+            query = query.where(or_(*[_OBSERVATIONS.c.patient_id.startswith(prefix, autoescape=True) for prefix in patient_prefixes]))
         if before_id is not None:
             query = query.where(_OBSERVATIONS.c.id < before_id)
         query = query.order_by(_OBSERVATIONS.c.id.desc()).limit(limit)
