@@ -5,11 +5,13 @@ on:
     branches: [main]
     paths:
       - 'src/**'
+      - 'backend/**'
       - 'e2e/**'
       - 'playwright.config.mjs'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/e2e.yml'
+      - 'render.yaml'
   workflow_dispatch:
 
 permissions:
