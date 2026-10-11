@@ -26,7 +26,7 @@ def test_slow_client_is_removed_without_blocking_healthy_client():
         hub = LiveEventHub(send_timeout_seconds=0.01)
         slow = FakeSocket(delay=0.1)
         healthy = FakeSocket()
-        hub._clients.update({slow, healthy})
+        hub._clients.update({slow: "*", healthy: "*"})
 
         await asyncio.wait_for(hub.broadcast({"type": "observation.created"}), timeout=0.2)
 
@@ -46,7 +46,7 @@ def test_failed_client_is_removed_and_other_clients_receive_event():
         hub = LiveEventHub()
         broken = BrokenSocket()
         healthy = FakeSocket()
-        hub._clients.update({broken, healthy})
+        hub._clients.update({broken: "*", healthy: "*"})
 
         await hub.broadcast({"type": "alert.created"})
 
