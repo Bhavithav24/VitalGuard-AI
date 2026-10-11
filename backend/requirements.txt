@@ -6,4 +6,5 @@ pytest==9.1.1
 httpx==0.28.1
 SQLAlchemy==2.1.4
 psycopg[binary]==3.3.6
-itsdangerous==2.2.0\nredis==7.1.0\n
+itsdangerous==2.2.0
+redis==7.1.0
