@@ -9,7 +9,7 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
-from .auth import authenticate_principal
+from .auth import require_roles
 from .ingestion_store import persist_ingested_observation
 from .live_events import hub
 from .model import MODEL_VERSION, explain, predict_probability, risk_level
@@ -18,7 +18,7 @@ from .schemas import RiskPrediction, VitalInput
 router = APIRouter(
     prefix="/api/v1/ingestion",
     tags=["validated-ingestion"],
-    dependencies=[Depends(authenticate_principal)],
+    dependencies=[Depends(require_roles("admin", "operator"))],
 )
 
 
@@ -74,7 +74,7 @@ def _error_detail(error: ValidationError) -> list[dict[str, str]]:
 
 
 @router.post("/batch")
-async def ingest_batch(batch: IngestionBatch, principal: dict = Depends(authenticate_principal)):
+async def ingest_batch(batch: IngestionBatch, principal: dict = Depends(require_roles("admin", "operator"))):
     """Validate each item independently; valid items commit even when peers fail."""
     results: list[dict[str, Any]] = []
     for index, raw in enumerate(batch.records):
