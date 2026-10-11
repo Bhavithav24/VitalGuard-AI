@@ -298,3 +298,56 @@ def test_shared_auth_state_fails_closed_when_redis_is_configured_but_unavailable
     with pytest.raises(Exception):
         auth._redis()
     auth._redis_client = None
+
+
+def test_websocket_ticket_is_single_use(client):
+    token = client.headers["Authorization"].split(" ", 1)[1]
+    ticket_response = client.post("/api/v1/auth/ws-ticket")
+    assert ticket_response.status_code == 200
+    ticket = ticket_response.json()["ticket"]
+    from app.auth import _consume_ws_ticket
+    assert _consume_ws_ticket(ticket) == token
+    with pytest.raises(Exception):
+        _consume_ws_ticket(ticket)
+
+
+def test_oversized_request_body_is_rejected(client):
+    response = client.post(
+        "/api/v1/risk/predict",
+        content="x" * 1_000_001,
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 413
+
+
+def test_patient_scope_is_server_enforced(client, monkeypatch):
+    monkeypatch.setenv(
+        "VITALGUARD_AUTH_USERS_JSON",
+        '[{"username":"scoped","password_hash":"pbkdf2_sha256$210000$ODFe0akr--OGxcqsk4gygQ$aFcuHYhvwRSWs6cGLgrBAv931ThLm8x_knGymjIf7eY","role":"operator","enabled":true,"patient_prefixes":["DEMO-TEAM-A-"]}]',
+    )
+    monkeypatch.setenv("VITALGUARD_AUTH_USERNAME", "")
+    monkeypatch.setenv("VITALGUARD_AUTH_PASSWORD", "")
+    login = client.post("/api/v1/auth/login", json={"username":"scoped","password":"VitalGuardDemo2026!"})
+    assert login.status_code == 200
+    token = login.json()["access_token"]
+    allowed = client.post("/api/v1/risk/predict", json={**valid_payload(), "patient_id":"DEMO-TEAM-A-001"}, headers={"Authorization":f"Bearer {token}"})
+    denied = client.post("/api/v1/risk/predict", json={**valid_payload(), "patient_id":"DEMO-OTHER-001"}, headers={"Authorization":f"Bearer {token}"})
+    assert allowed.status_code == 200
+    assert denied.status_code == 403
+
+
+def test_security_audit_records_logout(client):
+    from app.storage import _engine
+    from app.storage_schema import audit_events
+    from sqlalchemy import select
+    response = client.post("/api/v1/auth/logout")
+    assert response.status_code == 204
+    engine = _engine()
+    try:
+        with engine.connect() as connection:
+            actions = connection.execute(
+                select(audit_events.c.action).where(audit_events.c.entity_type == "security")
+            ).scalars().all()
+    finally:
+        engine.dispose()
+    assert "logout" in actions

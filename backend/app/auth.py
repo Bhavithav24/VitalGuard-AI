@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from pydantic import BaseModel, ConfigDict, Field
+from .security_audit import record_security_event
 
 router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
 _bearer = HTTPBearer(auto_error=False)
@@ -30,6 +31,8 @@ _REDIS_PREFIX = "vitalguard:auth:"
 _redis_client = None
 _REDIS_UNAVAILABLE = object()
 _PROCESS_AUTH_EPOCH = secrets.token_urlsafe(24)
+_WS_TICKET_TTL_SECONDS = 60
+_WS_TICKETS: dict[str, tuple[str, float]] = {}
 Role = Literal["admin", "operator", "viewer"]
 _VALID_ROLES = {"admin", "operator", "viewer"}
 
@@ -93,12 +96,27 @@ def _accounts() -> list[dict[str, str]]:
             username = str(record.get("username", "")).strip()
             password_hash = str(record.get("password_hash", "")).strip()
             role = str(record.get("role", "")).strip().lower()
+            enabled = record.get("enabled", True)
+            raw_prefixes = record.get("patient_prefixes", ["*"])
+            if isinstance(raw_prefixes, str):
+                raw_prefixes = [raw_prefixes]
+            if not isinstance(enabled, bool) or not isinstance(raw_prefixes, list) or not raw_prefixes or len(raw_prefixes) > 50:
+                raise HTTPException(status_code=503, detail="Authentication users are not configured correctly")
+            if any(not isinstance(prefix, str) or not 1 <= len(prefix) <= 64 for prefix in raw_prefixes):
+                raise HTTPException(status_code=503, detail="Authentication users are not configured correctly")
             if not username or len(username) > 128 or not password_hash or role not in _VALID_ROLES:
                 raise HTTPException(status_code=503, detail="Authentication users are not configured correctly")
-            accounts.append({"username": username, "password": "", "password_hash": password_hash, "role": role})
+            accounts.append({
+                "username": username,
+                "password": "",
+                "password_hash": password_hash,
+                "role": role,
+                "enabled": "true" if enabled else "false",
+                "patient_prefixes": ",".join(raw_prefixes),
+            })
         return accounts
     username, password, password_hash, _, role = _credentials()
-    return [{"username": username, "password": password, "password_hash": password_hash, "role": role}]
+    return [{"username": username, "password": password, "password_hash": password_hash, "role": role, "enabled": "true", "patient_prefixes": "*"}]
 
 
 def _serializer(secret: str) -> URLSafeTimedSerializer:
@@ -124,7 +142,7 @@ def validate_access_token(token: str | None) -> dict[str, str]:
     if not isinstance(payload, dict) or payload.get("type") != "access" or not isinstance(payload.get("sub"), str):
         raise HTTPException(status_code=401, detail="Invalid access token", headers={"WWW-Authenticate": "Bearer"})
     account = next((item for item in _accounts() if hmac.compare_digest(item["username"], payload["sub"])), None)
-    if account is None or payload.get("role") != account["role"]:
+    if account is None or account.get("enabled") != "true" or payload.get("role") != account["role"] or payload.get("scope") != account.get("patient_prefixes", "*"):
         raise HTTPException(status_code=401, detail="Account or role is no longer valid", headers={"WWW-Authenticate": "Bearer"})
     jti = payload.get("jti")
     epoch = payload.get("epoch")
@@ -132,7 +150,7 @@ def validate_access_token(token: str | None) -> dict[str, str]:
         raise HTTPException(status_code=401, detail="Access token revoked", headers={"WWW-Authenticate": "Bearer"})
     if not isinstance(epoch, str) or not hmac.compare_digest(epoch, _auth_epoch()):
         raise HTTPException(status_code=401, detail="Access token is no longer valid", headers={"WWW-Authenticate": "Bearer"})
-    return {"sub": account["username"], "role": account["role"], "jti": jti}
+    return {"sub": account["username"], "role": account["role"], "jti": jti, "scope": account.get("patient_prefixes", "*")}
 
 
 def authenticate_principal(
@@ -141,6 +159,16 @@ def authenticate_principal(
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(status_code=401, detail="Bearer token required", headers={"WWW-Authenticate": "Bearer"})
     return validate_access_token(credentials.credentials)
+
+
+def patient_access_allowed(principal: dict[str, str], patient_id: str) -> bool:
+    scope = [prefix for prefix in principal.get("scope", "*").split(",") if prefix]
+    return "*" in scope or any(patient_id.startswith(prefix) for prefix in scope)
+
+
+def require_patient_access(patient_id: str, principal: dict[str, str]) -> None:
+    if not patient_access_allowed(principal, patient_id):
+        raise HTTPException(status_code=403, detail="Patient access is outside the assigned scope")
 
 
 def require_roles(*allowed_roles: Role):
@@ -249,6 +277,42 @@ def _check_login_rate_limit(client_key: str) -> None:
         raise HTTPException(status_code=503, detail="Shared authentication state is unavailable") from exc
 
 
+def _issue_ws_ticket(access_token: str) -> str:
+    """Issue a short-lived single-use ticket without exposing the bearer token in the URL."""
+    ticket = secrets.token_urlsafe(32)
+    key = _state_key("ws-ticket", ticket)
+    client = _redis()
+    if client is None:
+        _WS_TICKETS[key] = (access_token, time.time() + _WS_TICKET_TTL_SECONDS)
+        return ticket
+    try:
+        client.setex(key, _WS_TICKET_TTL_SECONDS, access_token)
+        return ticket
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Shared authentication state is unavailable") from exc
+
+
+def _consume_ws_ticket(ticket: str) -> str:
+    if not ticket or len(ticket) > 256:
+        raise HTTPException(status_code=401, detail="Invalid WebSocket ticket")
+    key = _state_key("ws-ticket", ticket)
+    client = _redis()
+    if client is None:
+        stored = _WS_TICKETS.pop(key, None)
+        if not stored or stored[1] <= time.time():
+            raise HTTPException(status_code=401, detail="Invalid or expired WebSocket ticket")
+        return stored[0]
+    try:
+        access_token = client.getdel(key)
+        if not access_token:
+            raise HTTPException(status_code=401, detail="Invalid or expired WebSocket ticket")
+        return access_token
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Shared authentication state is unavailable") from exc
+
+
 def _clear_login_rate_limit(client_key: str) -> None:
     client = _redis()
     if client is None:
@@ -267,15 +331,17 @@ def login(request: Request, payload: LoginRequest) -> TokenResponse:
     client_key = f"{client_host}:{payload.username.lower()}"
     _check_login_rate_limit(client_key)
     account = next((item for item in _accounts() if hmac.compare_digest(payload.username, item["username"])), None)
-    if account is None or not _verify_password(payload.password, account):
+    if account is None or account.get("enabled") != "true" or not _verify_password(payload.password, account):
         client = _redis()
         if client is None:
             recent = _login_attempts.get(client_key, [])
             recent.append(time.monotonic())
             _login_attempts[client_key] = recent[-_LOGIN_MAX_ATTEMPTS:]
+        record_security_event("login_failed", "anonymous", {"account_match": account is not None})
         raise HTTPException(status_code=401, detail="Invalid username or password", headers={"WWW-Authenticate": "Bearer"})
     _clear_login_rate_limit(client_key)
-    token = _serializer(secret).dumps({"sub": account["username"], "type": "access", "role": account["role"], "jti": secrets.token_urlsafe(18), "epoch": _auth_epoch()})
+    token = _serializer(secret).dumps({"sub": account["username"], "type": "access", "role": account["role"], "scope": account.get("patient_prefixes", "*"), "jti": secrets.token_urlsafe(18), "epoch": _auth_epoch()})
+    record_security_event("login_succeeded", account["username"], {"role": account["role"]})
     return TokenResponse(access_token=token, expires_in=ACCESS_TOKEN_TTL_SECONDS, role=account["role"])
 
 
@@ -284,9 +350,20 @@ def current_identity(principal: Annotated[dict[str, str], Depends(authenticate_p
     return {"subject": principal["sub"], "role": principal["role"], "authenticated": True}
 
 
+@router.post("/ws-ticket")
+def websocket_ticket(credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)]):
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=401, detail="Bearer token required", headers={"WWW-Authenticate": "Bearer"})
+    principal = validate_access_token(credentials.credentials)
+    ticket = _issue_ws_ticket(credentials.credentials)
+    record_security_event("websocket_ticket_issued", principal["sub"], {"role": principal["role"]})
+    return {"ticket": ticket, "expires_in": _WS_TICKET_TTL_SECONDS, "demo_only": True}
+
+
 @router.post("/logout", status_code=204)
 def logout(principal: Annotated[dict[str, str], Depends(authenticate_principal)]):
     _revoke(principal["jti"])
+    record_security_event("logout", principal["sub"], {"role": principal["role"]})
     return None
 
 
