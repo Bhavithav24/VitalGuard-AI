@@ -161,7 +161,10 @@ The repository has two phase histories: the legacy feature roadmap below documen
 - [Master delivery plan](docs/MASTER_DELIVERY_PLAN.md) — full sequential phases 0–20 and release gates.
 - [Phase 0 audit](docs/PHASE_0_AUDIT.md) — current repository, Render baseline and gaps.
 - [Phase 1 requirements](docs/PHASE_1_REQUIREMENTS.md) — product, data, security, model and safety requirements.
+- [Phase 2 architecture](docs/PHASE_2_ARCHITECTURE.md) — deployed topology, modules and trust boundaries.
+- [Phase 2 API contracts](docs/PHASE_2_API_CONTRACTS.md) — current endpoint inventory and proposed API semantics.
+- [Phase 2 data model](docs/PHASE_2_DATA_MODEL.md) — current storage and target observation lifecycle.
 - [Legacy demo feature roadmap](docs/REALTIME_DEMO_ROADMAP.md) — delivered prototype capabilities and limitations.
 - [Render release runbook](docs/RENDER_RELEASE_RUNBOOK.md) — service branches and deployment verification.
 
-Current delivery phase: Phase 1 requirements baseline documented. Hosted PostgreSQL configuration, authentication/authorization, live end-to-end verification and clinical validation remain outstanding.
+Current delivery phase: Phase 2 architecture/API/data-model baseline documented. Hosted PostgreSQL configuration, authentication/authorization, live end-to-end verification and clinical validation remain outstanding.
