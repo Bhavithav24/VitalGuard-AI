@@ -155,7 +155,6 @@ def _check_login_rate_limit(client_key: str) -> None:
     recent = [stamp for stamp in _login_attempts.get(client_key, []) if now - stamp < _LOGIN_WINDOW_SECONDS]
     if len(recent) >= _LOGIN_MAX_ATTEMPTS:
         raise HTTPException(status_code=429, detail="Too many login attempts; try again shortly")
-    recent.append(now)
     _login_attempts[client_key] = recent
 
 
@@ -166,7 +165,11 @@ def login(request: Request, payload: LoginRequest) -> TokenResponse:
     _check_login_rate_limit(f"{client_host}:{payload.username.lower()}")
     account = next((item for item in _accounts() if hmac.compare_digest(payload.username, item["username"])), None)
     if account is None or not _verify_password(payload.password, account):
+        recent = _login_attempts.get(client_key, [])
+        recent.append(time.monotonic())
+        _login_attempts[client_key] = recent[-_LOGIN_MAX_ATTEMPTS:]
         raise HTTPException(status_code=401, detail="Invalid username or password", headers={"WWW-Authenticate": "Bearer"})
+    _login_attempts.pop(client_key, None)
     token = _serializer(secret).dumps({"sub": account["username"], "type": "access", "role": account["role"], "jti": secrets.token_urlsafe(18)})
     return TokenResponse(access_token=token, expires_in=ACCESS_TOKEN_TTL_SECONDS, role=account["role"])
 
