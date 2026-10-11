@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
 :root { color-scheme: light; --vg-teal: #0d9488; --vg-ink: #142238; --vg-canvas: #f5f8fb; --vg-border: #e3eaf1; }
 body { @apply bg-[#f5f8fb] text-slate-900 antialiased; font-feature-settings: "tnum" 1, "cv05" 1; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
 .dark body, .dark { color-scheme: dark; }
@@ -15,7 +14,7 @@ h1, h2, .font-display { font-family: "Plus Jakarta Sans", Inter, system-ui, sans
 .dark .glass { @apply bg-slate-900/70 border-slate-700/60; }
 .eyebrow { @apply text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400; }
 .metric { @apply tabular-nums font-extrabold tracking-tight; font-family: "Plus Jakarta Sans", Inter, sans-serif; }
-.btn { @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed select-none; }
+@utility btn { @apply inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed select-none; }
 .btn-primary { @apply btn text-white hover:-translate-y-px; background: linear-gradient(135deg, #0f766e, #0d9488 55%, #0891b2); box-shadow: 0 6px 18px -6px rgba(13,148,136,.55); }
 .btn-primary:hover { box-shadow: 0 10px 24px -6px rgba(13,148,136,.6); }
 .btn-secondary { @apply btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 hover:-translate-y-px; }
