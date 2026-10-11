@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Activity, BellRing, Clock3, History, RefreshCw, ShieldCheck } from 'lucide-react';
 import { APP_CONFIG } from '../../services/config.ts';
+import { authorizedFetch } from '../../services/authenticatedFetch.ts';
 
 type TimelineEvent = {
   event_id: string;
@@ -39,7 +40,7 @@ export function BackendPatientTimeline({ patientId }: { patientId: string }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${APP_CONFIG.apiBaseUrl}/api/v1/patients/${encodeURIComponent(patientId)}/timeline?limit=30`, {
+      const response = await authorizedFetch(`${APP_CONFIG.apiBaseUrl}/api/v1/patients/${encodeURIComponent(patientId)}/timeline?limit=30`, {
         signal: AbortSignal.timeout(8000),
       });
       if (!response.ok) throw new Error(`Timeline API returned ${response.status}`);
