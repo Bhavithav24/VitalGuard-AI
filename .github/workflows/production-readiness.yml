@@ -28,7 +28,7 @@ jobs:
           VITALGUARD_AUTH_PASSWORD: test-only-password
           VITALGUARD_AUTH_SECRET: test-only-secret-that-is-at-least-32-chars
           VITALGUARD_AUTH_ROLE: admin
-        run: pytest -q
+        run: PYTHONPATH=. pytest -q
 
   frontend:
     runs-on: ubuntu-latest
