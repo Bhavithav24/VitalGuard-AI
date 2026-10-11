@@ -112,5 +112,8 @@ For the current delivery sequence, see:
 - [Master delivery plan](MASTER_DELIVERY_PLAN.md) — phases 0–20, release gates and known blockers.
 - [Phase 0 repository/deployment audit](PHASE_0_AUDIT.md).
 - [Phase 1 product requirements and safety boundaries](PHASE_1_REQUIREMENTS.md).
+- [Phase 2 architecture and trust boundaries](PHASE_2_ARCHITECTURE.md).
+- [Phase 2 API contract inventory](PHASE_2_API_CONTRACTS.md).
+- [Phase 2 data model and lifecycle](PHASE_2_DATA_MODEL.md).
 
 The next implementation work follows the master delivery plan, not by blindly continuing legacy feature phase numbering. No phase is considered complete until its exit evidence is recorded.
