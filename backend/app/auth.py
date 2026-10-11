@@ -11,6 +11,7 @@ import hmac
 import json
 import os
 import time
+import secrets
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -21,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field
 router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
 _bearer = HTTPBearer(auto_error=False)
 ACCESS_TOKEN_TTL_SECONDS = 900
+_REVOKED_TOKENS: dict[str, float] = {}
 Role = Literal["admin", "operator", "viewer"]
 _VALID_ROLES = {"admin", "operator", "viewer"}
 
@@ -61,7 +63,9 @@ def _credentials() -> tuple[str, str, str, str, Role]:
     role = os.getenv("VITALGUARD_AUTH_ROLE", "admin").strip().lower()
     if role not in _VALID_ROLES:
         raise HTTPException(status_code=503, detail="Authentication role is invalid")
-    if not username or (not password and not password_hash) or len(secret) < 32:
+    if not secret or len(secret) < 32:
+        raise HTTPException(status_code=503, detail="Authentication is not configured")
+    if not os.getenv("VITALGUARD_AUTH_USERS_JSON", "").strip() and (not username or (not password and not password_hash)):
         raise HTTPException(status_code=503, detail="Authentication is not configured")
     return username, password, password_hash, secret, role  # type: ignore[return-value]
 
@@ -115,7 +119,10 @@ def validate_access_token(token: str | None) -> dict[str, str]:
     account = next((item for item in _accounts() if hmac.compare_digest(item["username"], payload["sub"])), None)
     if account is None or payload.get("role") != account["role"]:
         raise HTTPException(status_code=401, detail="Account or role is no longer valid", headers={"WWW-Authenticate": "Bearer"})
-    return {"sub": account["username"], "role": account["role"]}
+    jti = payload.get("jti")
+    if not isinstance(jti, str) or not jti or jti in _REVOKED_TOKENS:
+        raise HTTPException(status_code=401, detail="Access token revoked", headers={"WWW-Authenticate": "Bearer"})
+    return {"sub": account["username"], "role": account["role"], "jti": jti}
 
 
 def authenticate_principal(
@@ -159,10 +166,33 @@ def login(payload: LoginRequest) -> TokenResponse:
     account = next((item for item in _accounts() if hmac.compare_digest(payload.username, item["username"])), None)
     if account is None or not _verify_password(payload.password, account):
         raise HTTPException(status_code=401, detail="Invalid username or password", headers={"WWW-Authenticate": "Bearer"})
-    token = _serializer(secret).dumps({"sub": account["username"], "type": "access", "role": account["role"]})
+    token = _serializer(secret).dumps({"sub": account["username"], "type": "access", "role": account["role"], "jti": secrets.token_urlsafe(18)})
     return TokenResponse(access_token=token, expires_in=ACCESS_TOKEN_TTL_SECONDS, role=account["role"])
 
 
 @router.get("/me")
 def current_identity(principal: Annotated[dict[str, str], Depends(authenticate_principal)]):
     return {"subject": principal["sub"], "role": principal["role"], "authenticated": True}
+
+
+@router.post("/logout", status_code=204)
+def logout(principal: Annotated[dict[str, str], Depends(authenticate_principal)]):
+    _REVOKED_TOKENS[principal["jti"]] = time.time() + ACCESS_TOKEN_TTL_SECONDS
+    cutoff = time.time()
+    for token_id, expires_at in list(_REVOKED_TOKENS.items()):
+        if expires_at <= cutoff:
+            _REVOKED_TOKENS.pop(token_id, None)
+    return None
+
+
+@router.get("/roles")
+def role_permissions(principal: Annotated[dict[str, str], Depends(authenticate_principal)]):
+    return {
+        "current_role": principal["role"],
+        "roles": {
+            "admin": ["read", "predict", "ingest", "manage_alerts", "operations"],
+            "operator": ["read", "predict", "ingest", "manage_alerts"],
+            "viewer": ["read", "explain"],
+        },
+        "demo_only": True,
+    }
