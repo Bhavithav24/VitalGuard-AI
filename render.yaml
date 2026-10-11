@@ -1,10 +1,17 @@
 services:
   - type: web
     runtime: static
-    name: vitalguard-ai
+    name: vitalguard-ai-bhavithav
     branch: main
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://vitalguard-risk-api-bhavithav.onrender.com
+      - key: VITE_DEMO_MODE
+        value: "true"
+      - key: VITE_APP_VERSION
+        value: 0.2.0-demo
     routes:
       # Required for React client-side routes such as /dashboard and /settings.
       - type: rewrite
@@ -26,9 +33,27 @@ services:
     branch: main
     buildCommand: pip install -r backend/requirements.txt
     startCommand: uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vitalguard-postgres-bhavithav
+          property: connectionString
       - key: REDIS_URL
         fromService:
           name: vitalguard-realtime-bhavithav
           type: keyvalue
           property: connectionString
+      - key: CORS_ORIGINS
+        value: https://vitalguard-ai-bhavithav.onrender.com
+
+databases:
+  # Existing Render Postgres service. Free tier is suitable for demo use only
+  # and has a limited lifetime; upgrade before durable production use.
+  - name: vitalguard-postgres-bhavithav
+    postgresMajorVersion: "18"
+    plan: free
+    region: singapore
+    databaseName: vitalguard_postgres_bhavithav
+    user: vitalguard_postgres_bhavithav_user
+    ipAllowList: []
