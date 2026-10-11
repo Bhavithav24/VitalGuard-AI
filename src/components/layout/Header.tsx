@@ -9,6 +9,7 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
   const { alerts, running, lastRefresh, refresh } = useSimulation();
   const auth = useOptionalAuth();
   const username = auth?.username ?? null;
+  const role = auth?.role ?? null;
   const logout = auth?.logout ?? (() => {});
   const open = alerts.filter((a) => a.status === 'open').length;
   const [spinning, setSpinning] = useState(false);
@@ -42,7 +43,7 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
             )}
           </Link>
           <span className="hidden md:grid place-items-center h-9 w-9 rounded-full text-white text-xs font-extrabold" style={{ background: 'linear-gradient(135deg,#0f766e,#0891b2)' }} aria-hidden>DR</span>
-          <span className="hidden lg:inline max-w-28 truncate text-xs text-slate-500" title={username ?? 'Operator'}>{username ?? 'Operator'}</span>
+          <span className="hidden lg:inline max-w-28 truncate text-xs text-slate-500" title={username ?? "Operator"}>{username ?? "Operator"}</span>\n          {role && <span className="hidden sm:inline-flex px-2 py-1 rounded-md bg-slate-100 dark:bg-white/10 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">{role}</span>}
           <button type="button" onClick={logout} aria-label="Sign out" title="Sign out" className="icon-btn"><LogOut size={17} aria-hidden /></button>
         </div>
       </div>
