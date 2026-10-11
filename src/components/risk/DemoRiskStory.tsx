@@ -16,7 +16,7 @@ export function DemoRiskStory({ patientId }: { patientId: string }) {
     { label: 'Respiratory rate', value: Math.round(v.respiratoryRate - previous.respiratoryRate), unit: '/min' },
   ].filter((x) => x.value !== 0) : [];
 
-  const direction = r.trend === 'rising' ? 'upward' : r.trend === 'falling' ? 'downward' : 'stable';
+  const direction = r.trend === 'worsening' ? 'upward' : r.trend === 'recovering' ? 'downward' : 'stable';
   const DirectionIcon = direction === 'upward' ? ArrowUpRight : direction === 'downward' ? ArrowDownRight : Minus;
 
   return (
