@@ -289,3 +289,12 @@ def test_role_permissions_endpoint_reports_current_role(client):
     body = response.json()
     assert body["current_role"] == "admin"
     assert set(body["roles"]) == {"admin", "operator", "viewer"}
+
+
+def test_shared_auth_state_fails_closed_when_redis_is_configured_but_unavailable(monkeypatch):
+    from app import auth
+    auth._redis_client = None
+    monkeypatch.setenv("REDIS_URL", "redis://invalid-host-for-tests:6379")
+    with pytest.raises(Exception):
+        auth._redis()
+    auth._redis_client = None
