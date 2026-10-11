@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, ConfigDict, Field
 from .alert_service import list_alerts, list_alert_audit, transition_alert
-from .auth import authenticate_principal, require_roles
+from .auth import authenticate_principal, require_roles, require_patient_access
 from .escalation_policy import evaluate_escalation
 
 router = APIRouter(prefix="/api/v1/alerts", tags=["alerts"], dependencies=[Depends(authenticate_principal)])
@@ -15,7 +15,9 @@ class AlertAction(BaseModel):
 @router.get("")
 def get_alerts(status: Literal["open", "acknowledged", "resolved"] | None = None,
                patient_id: str | None = Query(default=None, min_length=1, max_length=64),
-               limit: int = Query(default=50, ge=1, le=100)):
+               limit: int = Query(default=50, ge=1, le=100), principal: dict = Depends(authenticate_principal)):
+    if patient_id:
+        require_patient_access(patient_id, principal)
     items = list_alerts(status=status, patient_id=patient_id, limit=limit)
     return {"items": items, "count": len(items), "demo_only": True}
 

@@ -315,7 +315,7 @@ def test_oversized_request_body_is_rejected(client):
     response = client.post(
         "/api/v1/risk/predict",
         content="x" * 1_000_001,
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", "Content-Length": str(1_000_001)},
     )
     assert response.status_code == 413
 

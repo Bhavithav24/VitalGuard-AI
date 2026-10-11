@@ -158,10 +158,12 @@ def operational_metrics(principal: dict = Depends(require_roles("admin", "operat
 
 
 @app.websocket("/api/v1/live")
-async def live_socket(websocket: WebSocket, token: str | None = Query(default=None)):
-    from .auth import validate_access_token
+async def live_socket(websocket: WebSocket, ticket: str | None = Query(default=None, min_length=20, max_length=256)):
     try:
-        validate_access_token(token)
+        if not ticket:
+            raise HTTPException(status_code=401, detail="WebSocket ticket required")
+        access_token = _consume_ws_ticket(ticket)
+        validate_access_token(access_token)
     except HTTPException:
         await websocket.close(code=1008, reason="Authentication required")
         return
@@ -190,6 +192,7 @@ def model_validation_diagnostics(principal: dict = Depends(authenticate_principa
 
 @app.post("/api/v1/risk/predict", response_model=RiskPrediction)
 async def predict(payload: VitalInput, principal: dict = Depends(require_roles("admin", "operator"))):
+    require_patient_access(payload.patient_id, principal)
     values = payload.model_dump(exclude={"patient_id"})
     probability = predict_probability(values)
     score = round(probability * 100)
@@ -206,6 +209,7 @@ async def predict(payload: VitalInput, principal: dict = Depends(require_roles("
 
 @app.post("/api/v1/risk/explain")
 def explain_risk(payload: VitalInput, principal: dict = Depends(require_roles("admin", "operator", "viewer"))):
+    require_patient_access(payload.patient_id, principal)
     values = payload.model_dump(exclude={"patient_id"})
     return {"patient_id": payload.patient_id, "model_version": MODEL_VERSION,
         "risk_score": round(predict_probability(values) * 100),
@@ -218,6 +222,8 @@ def explain_risk(payload: VitalInput, principal: dict = Depends(require_roles("a
 @app.get("/api/v1/observations")
 def observation_history(patient_id: str | None = Query(default=None, min_length=1, max_length=64),
     limit: int = Query(default=50, ge=1, le=100), before_id: int | None = Query(default=None, ge=1), principal: dict = Depends(authenticate_principal)):
+    if patient_id:
+        require_patient_access(patient_id, principal)
     records = list_observations(patient_id=patient_id, limit=limit, before_id=before_id)
     next_cursor = records[-1]["id"] if len(records) == limit else None
     return {"items": records, "count": len(records), "limit": limit, "next_before_id": next_cursor,

@@ -9,7 +9,7 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
-from .auth import require_roles
+from .auth import require_roles, require_patient_access
 from .ingestion_store import persist_ingested_observation
 from .live_events import hub
 from .model import MODEL_VERSION, explain, predict_probability, risk_level
@@ -84,6 +84,7 @@ async def ingest_batch(batch: IngestionBatch, principal: dict = Depends(require_
             results.append({"index": index, "status": "rejected", "errors": _error_detail(error)})
             continue
 
+        require_patient_access(item.observation.patient_id, principal)
         values = item.observation.model_dump(exclude={"patient_id"})
         probability = predict_probability(values)
         score = round(probability * 100)

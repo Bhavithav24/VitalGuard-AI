@@ -7,7 +7,7 @@ from .model import MODEL_VERSION, explain, predict_probability, risk_level
 from .schemas import RiskPrediction
 from .simulator import observation_for_step
 from .storage import save_observation
-from .auth import require_roles
+from .auth import require_roles, require_patient_access
 
 router = APIRouter(prefix="/api/v1/demo", tags=["demo-simulator"], dependencies=[Depends(require_roles("admin", "operator"))])
 
@@ -18,7 +18,8 @@ class SimulationRequest(BaseModel):
     step: int = Field(default=0, ge=0, le=1000)
 
 @router.post("/observations", response_model=RiskPrediction)
-async def submit_demo_observation(payload: SimulationRequest):
+async def submit_demo_observation(payload: SimulationRequest, principal: dict = Depends(require_roles("admin", "operator"))):
+    require_patient_access(payload.patient_id, principal)
     values = observation_for_step(payload.scenario, payload.step)
     probability = predict_probability(values)
     score = round(probability * 100)
