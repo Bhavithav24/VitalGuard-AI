@@ -42,6 +42,7 @@ export interface ObservationHistory {
 export interface ReadinessSnapshot {
   status: 'ready' | 'degraded';
   checks: {
+    api: string;
     database: string;
     operator_auth_configured: boolean;
     model_loaded: boolean;
