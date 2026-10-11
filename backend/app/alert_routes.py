@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, ConfigDict, Field
 from .alert_service import get_alert, list_alerts, list_alert_audit, transition_alert
-from .auth import authenticate_principal, require_roles, require_patient_access
+from .auth import authenticate_principal, patient_access_allowed, require_roles, require_patient_access
 from .escalation_policy import evaluate_escalation
 
 router = APIRouter(prefix="/api/v1/alerts", tags=["alerts"], dependencies=[Depends(authenticate_principal)])
@@ -25,7 +25,7 @@ def get_alerts(status: Literal["open", "acknowledged", "resolved"] | None = None
 def get_escalation_preview(limit: int = Query(default=100, ge=1, le=100),
                            principal: dict = Depends(authenticate_principal)):
     items = [item for item in list_alerts(status="open", limit=limit)
-             if require_patient_access(item["patient_id"], principal) is None]
+             if patient_access_allowed(principal, item["patient_id"])]
     previews = [evaluate_escalation(item) for item in items]
     due = [item for item in previews if item["review_due"]]
     return {"items": previews, "count": len(previews), "due_count": len(due),
@@ -47,6 +47,10 @@ def acknowledge_alert(alert_id: int, payload: AlertAction,
 @router.post("/{alert_id}/resolve")
 def resolve_alert(alert_id: int, payload: AlertAction,
                   principal: dict = Depends(require_roles("admin", "operator"))):
+    alert = get_alert(alert_id)
+    if alert is None:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    require_patient_access(alert["patient_id"], principal)
     result = transition_alert(alert_id, "resolve", principal["sub"])
     if result is None:
         raise HTTPException(status_code=404, detail="Alert not found")
