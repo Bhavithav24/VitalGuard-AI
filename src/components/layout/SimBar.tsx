@@ -51,7 +51,7 @@ export function SimBar() {
               </button>
             ))}
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   );
