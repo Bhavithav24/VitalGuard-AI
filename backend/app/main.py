@@ -21,7 +21,7 @@ from .alert_service import create_alert
 from .data_quality import assess_observations
 from .live_events import hub
 from .storage import database_health, initialize_storage, list_observations, save_observation
-from .auth import router as auth_router, authenticate_principal
+from .auth import router as auth_router, authenticate_principal, require_roles
 from .ingestion_routes import router as ingestion_router
 
 @asynccontextmanager
@@ -132,7 +132,7 @@ def operational_readiness(principal: dict = Depends(authenticate_principal)):
 
 
 @app.get("/api/v1/ops/metrics")
-def operational_metrics(principal: dict = Depends(authenticate_principal)):
+def operational_metrics(principal: dict = Depends(require_roles("admin", "operator"))):
     """Return bounded-cardinality, process-local metrics without request data."""
     with _metrics_lock:
         count = _request_count
