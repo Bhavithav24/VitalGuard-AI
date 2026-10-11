@@ -30,6 +30,37 @@ jobs:
           VITALGUARD_AUTH_ROLE: admin
         run: PYTHONPATH=. pytest -q
 
+
+  postgres-persistence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: vitalguard_test
+          POSTGRES_PASSWORD: vitalguard_test_password
+          POSTGRES_DB: vitalguard_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U vitalguard_test -d vitalguard_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install backend dependencies
+        run: python -m pip install -r backend/requirements.txt
+      - name: Verify PostgreSQL persistence across processes
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://vitalguard_test:vitalguard_test_password@127.0.0.1:5432/vitalguard_test
+        run: PYTHONPATH=. pytest -q tests/test_postgres_persistence.py -m postgres
+
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 10
