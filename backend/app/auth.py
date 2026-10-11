@@ -12,6 +12,7 @@ import json
 import os
 import time
 import secrets
+import hashlib
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -23,6 +24,13 @@ router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
 _bearer = HTTPBearer(auto_error=False)
 ACCESS_TOKEN_TTL_SECONDS = 900
 _REVOKED_TOKENS: dict[str, float] = {}
+_LOGIN_WINDOW_SECONDS = 60
+_LOGIN_MAX_ATTEMPTS = 10
+_login_attempts: dict[str, list[float]] = {}
+_REDIS_PREFIX = "vitalguard:auth:"
+_redis_client = None
+_REDIS_UNAVAILABLE = object()
+_PROCESS_AUTH_EPOCH = secrets.token_urlsafe(24)
 Role = Literal["admin", "operator", "viewer"]
 _VALID_ROLES = {"admin", "operator", "viewer"}
 
@@ -120,8 +128,11 @@ def validate_access_token(token: str | None) -> dict[str, str]:
     if account is None or payload.get("role") != account["role"]:
         raise HTTPException(status_code=401, detail="Account or role is no longer valid", headers={"WWW-Authenticate": "Bearer"})
     jti = payload.get("jti")
-    if not isinstance(jti, str) or not jti or jti in _REVOKED_TOKENS:
+    epoch = payload.get("epoch")
+    if not isinstance(jti, str) or not jti or _is_revoked(jti):
         raise HTTPException(status_code=401, detail="Access token revoked", headers={"WWW-Authenticate": "Bearer"})
+    if not isinstance(epoch, str) or not hmac.compare_digest(epoch, _auth_epoch()):
+        raise HTTPException(status_code=401, detail="Access token is no longer valid", headers={"WWW-Authenticate": "Bearer"})
     return {"sub": account["username"], "role": account["role"], "jti": jti}
 
 
@@ -145,17 +156,109 @@ def require_roles(*allowed_roles: Role):
     return dependency
 
 
-_LOGIN_WINDOW_SECONDS = 60
-_LOGIN_MAX_ATTEMPTS = 10
-_login_attempts: dict[str, list[float]] = {}
+def _redis():
+    global _redis_client
+    url = os.getenv("REDIS_URL", "").strip()
+    if not url:
+        return None
+    if _redis_client is None:
+        try:
+            import redis
+            _redis_client = redis.Redis.from_url(
+                url,
+                decode_responses=True,
+                socket_connect_timeout=1,
+                socket_timeout=1,
+                health_check_interval=30,
+            )
+            _redis_client.ping()
+        except Exception as exc:
+            _redis_client = _REDIS_UNAVAILABLE
+            raise HTTPException(status_code=503, detail="Shared authentication state is unavailable") from exc
+    if _redis_client is _REDIS_UNAVAILABLE:
+        raise HTTPException(status_code=503, detail="Shared authentication state is unavailable")
+    return _redis_client
+
+
+def _state_key(kind: str, value: str) -> str:
+    digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
+    return f"{_REDIS_PREFIX}{kind}:{digest}"
+
+
+def _auth_epoch() -> str:
+    client = _redis()
+    if client is None:
+        return _PROCESS_AUTH_EPOCH
+    try:
+        key = f"{_REDIS_PREFIX}epoch"
+        epoch = client.get(key)
+        if epoch:
+            return epoch
+        candidate = secrets.token_urlsafe(24)
+        client.set(key, candidate, nx=True)
+        return client.get(key) or candidate
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Shared authentication state is unavailable") from exc
+
+
+def _is_revoked(jti: str) -> bool:
+    client = _redis()
+    if client is None:
+        expires_at = _REVOKED_TOKENS.get(jti)
+        if expires_at is None:
+            return False
+        if expires_at <= time.time():
+            _REVOKED_TOKENS.pop(jti, None)
+            return False
+        return True
+    try:
+        return bool(client.exists(_state_key("revoked", jti)))
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Shared authentication state is unavailable") from exc
+
+
+def _revoke(jti: str) -> None:
+    client = _redis()
+    if client is None:
+        _REVOKED_TOKENS[jti] = time.time() + ACCESS_TOKEN_TTL_SECONDS
+        return
+    try:
+        client.setex(_state_key("revoked", jti), ACCESS_TOKEN_TTL_SECONDS, "1")
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Shared authentication state is unavailable") from exc
 
 
 def _check_login_rate_limit(client_key: str) -> None:
-    now = time.monotonic()
-    recent = [stamp for stamp in _login_attempts.get(client_key, []) if now - stamp < _LOGIN_WINDOW_SECONDS]
-    if len(recent) >= _LOGIN_MAX_ATTEMPTS:
-        raise HTTPException(status_code=429, detail="Too many login attempts; try again shortly")
-    _login_attempts[client_key] = recent
+    client = _redis()
+    if client is None:
+        now = time.monotonic()
+        recent = [stamp for stamp in _login_attempts.get(client_key, []) if now - stamp < _LOGIN_WINDOW_SECONDS]
+        if len(recent) >= _LOGIN_MAX_ATTEMPTS:
+            raise HTTPException(status_code=429, detail="Too many login attempts; try again shortly")
+        _login_attempts[client_key] = recent
+        return
+    try:
+        key = _state_key("login", client_key)
+        count = int(client.incr(key))
+        if count == 1:
+            client.expire(key, _LOGIN_WINDOW_SECONDS)
+        if count > _LOGIN_MAX_ATTEMPTS:
+            raise HTTPException(status_code=429, detail="Too many login attempts; try again shortly")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Shared authentication state is unavailable") from exc
+
+
+def _clear_login_rate_limit(client_key: str) -> None:
+    client = _redis()
+    if client is None:
+        _login_attempts.pop(client_key, None)
+        return
+    try:
+        client.delete(_state_key("login", client_key))
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Shared authentication state is unavailable") from exc
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -166,12 +269,14 @@ def login(request: Request, payload: LoginRequest) -> TokenResponse:
     _check_login_rate_limit(client_key)
     account = next((item for item in _accounts() if hmac.compare_digest(payload.username, item["username"])), None)
     if account is None or not _verify_password(payload.password, account):
-        recent = _login_attempts.get(client_key, [])
-        recent.append(time.monotonic())
-        _login_attempts[client_key] = recent[-_LOGIN_MAX_ATTEMPTS:]
+        client = _redis()
+        if client is None:
+            recent = _login_attempts.get(client_key, [])
+            recent.append(time.monotonic())
+            _login_attempts[client_key] = recent[-_LOGIN_MAX_ATTEMPTS:]
         raise HTTPException(status_code=401, detail="Invalid username or password", headers={"WWW-Authenticate": "Bearer"})
-    _login_attempts.pop(client_key, None)
-    token = _serializer(secret).dumps({"sub": account["username"], "type": "access", "role": account["role"], "jti": secrets.token_urlsafe(18)})
+    _clear_login_rate_limit(client_key)
+    token = _serializer(secret).dumps({"sub": account["username"], "type": "access", "role": account["role"], "jti": secrets.token_urlsafe(18), "epoch": _auth_epoch()})
     return TokenResponse(access_token=token, expires_in=ACCESS_TOKEN_TTL_SECONDS, role=account["role"])
 
 
@@ -182,11 +287,7 @@ def current_identity(principal: Annotated[dict[str, str], Depends(authenticate_p
 
 @router.post("/logout", status_code=204)
 def logout(principal: Annotated[dict[str, str], Depends(authenticate_principal)]):
-    _REVOKED_TOKENS[principal["jti"]] = time.time() + ACCESS_TOKEN_TTL_SECONDS
-    cutoff = time.time()
-    for token_id, expires_at in list(_REVOKED_TOKENS.items()):
-        if expires_at <= cutoff:
-            _REVOKED_TOKENS.pop(token_id, None)
+    _revoke(principal["jti"])
     return None
 
 
