@@ -22,7 +22,7 @@ from .alert_service import create_alert
 from .data_quality import assess_observations
 from .live_events import hub
 from .storage import database_health, initialize_storage, list_observations, save_observation
-from .auth import router as auth_router, authenticate_principal, require_roles, require_patient_access, _consume_ws_ticket, validate_access_token
+from .auth import router as auth_router, authenticate_principal, require_roles, require_patient_access, patient_scope_prefixes, _consume_ws_ticket, validate_access_token
 from .ingestion_routes import router as ingestion_router
 
 @asynccontextmanager
@@ -225,7 +225,7 @@ def observation_history(patient_id: str | None = Query(default=None, min_length=
     limit: int = Query(default=50, ge=1, le=100), before_id: int | None = Query(default=None, ge=1), principal: dict = Depends(authenticate_principal)):
     if patient_id:
         require_patient_access(patient_id, principal)
-    records = list_observations(patient_id=patient_id, limit=limit, before_id=before_id)
+    records = list_observations(patient_id=patient_id, limit=limit, before_id=before_id, patient_prefixes=patient_scope_prefixes(principal))
     next_cursor = records[-1]["id"] if len(records) == limit else None
     return {"items": records, "count": len(records), "limit": limit, "next_before_id": next_cursor,
         "demo_only": True, "disclaimer": "Synthetic demonstration records only; not for clinical use."}
