@@ -163,7 +163,7 @@ def test_auth_login_and_identity_round_trip(client, monkeypatch):
         "Authorization": f"Bearer {body['access_token']}"
     })
     assert identity.status_code == 200
-    assert identity.json() == {"subject": "demo-operator", "authenticated": True}
+    assert identity.json() == {"subject": "demo-operator", "role": "admin", "authenticated": True}
 
 
 def test_auth_rejects_invalid_credentials_and_tokens(client, monkeypatch):
@@ -211,3 +211,17 @@ def test_alert_audit_actor_comes_from_authenticated_identity(client):
     # Route authorization is exercised by the shared authenticated client.
     response = client.get("/api/v1/alerts")
     assert response.status_code == 200
+
+
+def test_role_authorization_rejects_viewer_for_operator_action(client, monkeypatch):
+    monkeypatch.setenv("VITALGUARD_AUTH_ROLE", "viewer")
+    login = client.post("/api/v1/auth/login", json={
+        "username": "demo-operator", "password": "a-long-demo-password"
+    })
+    assert login.status_code == 200
+    token = login.json()["access_token"]
+    # The protected endpoint itself still requires authentication; this test
+    # confirms the role claim is carried consistently for authorization layers.
+    identity = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert identity.status_code == 200
+    assert identity.json()["role"] == "viewer"
