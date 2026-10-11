@@ -11,8 +11,8 @@ def client(tmp_path, monkeypatch):
         yield test_client
 
 def test_websocket_receives_observation_only_after_ingestion(client):
-    token = client.headers["Authorization"].split(" ", 1)[1]
-    with client.websocket_connect(f"/api/v1/live?token={token}") as websocket:
+    ticket = client.post("/api/v1/auth/ws-ticket").json()["ticket"]
+    with client.websocket_connect(f"/api/v1/live?ticket={ticket}") as websocket:
         connected = websocket.receive_json()
         assert connected["type"] == "connected"
         response = client.post("/api/v1/demo/observations",
@@ -25,8 +25,8 @@ def test_websocket_receives_observation_only_after_ingestion(client):
         assert event["demo_only"] is True
 
 def test_websocket_heartbeat(client):
-    token = client.headers["Authorization"].split(" ", 1)[1]
-    with client.websocket_connect(f"/api/v1/live?token={token}") as websocket:
+    ticket = client.post("/api/v1/auth/ws-ticket").json()["ticket"]
+    with client.websocket_connect(f"/api/v1/live?ticket={ticket}") as websocket:
         assert websocket.receive_json()["type"] == "connected"
         websocket.send_text("ping")
         assert websocket.receive_json()["type"] == "pong"
