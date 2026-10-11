@@ -26,7 +26,7 @@ export function App() {
               <Route path="/patients/:patientId" element={<PatientDetailPage />} />
               <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+              <Route element={<ProtectedRoute allowedRoles={["admin", "operator"]} />}><Route path="/settings" element={<SettingsPage />} /></Route>
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>
