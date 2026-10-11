@@ -15,6 +15,7 @@ import { useSimulation } from '../store/useSimulation.ts';
 import { DataQualityPanel } from '../components/dashboard/DataQualityPanel.tsx';
 import { BackendObservationHistory } from '../components/dashboard/BackendObservationHistory.tsx';
 import { SystemReadinessCard } from '../components/dashboard/SystemReadinessCard.tsx';
+import { DemoScenarioLauncher } from '../components/dashboard/DemoScenarioLauncher.tsx';
 
 export function DashboardPage() {
   const { patients, risks, latest, alerts, tick, running } = useSimulation();
@@ -63,6 +64,7 @@ export function DashboardPage() {
       <DataQualityPanel />
       <BackendObservationHistory />
       <SystemReadinessCard />
+      <DemoScenarioLauncher />
       {hero && heroVitals && heroPatient && <HeroPatient hero={hero} vitals={heroVitals} patient={heroPatient} />}
       <div className="mt-4"><FilterBar value={filters} onChange={setFilters} resultCount={filtered.length} /></div>
       <div className="mt-4 grid xl:grid-cols-[minmax(0,1fr)_370px] gap-4 items-start">
