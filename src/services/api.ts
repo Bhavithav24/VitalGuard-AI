@@ -38,6 +38,22 @@ export interface ObservationHistory {
   demo_only: true;
   disclaimer: string;
 }
+
+export interface ReadinessSnapshot {
+  status: 'ready' | 'degraded';
+  checks: {
+    database: string;
+    operator_auth_configured: boolean;
+    model_loaded: boolean;
+    websocket_transport: string;
+  };
+  database_backend: string;
+  model_version: string;
+  demo_only: true;
+  clinically_validated: false;
+  notes: string[];
+}
+
 const AUTH_STORAGE_KEY = 'vitalguard.operator.session';
 function getAccessToken(): string | null {
   try {
@@ -80,4 +96,5 @@ export const api = {
     return get<ObservationHistory>(`/api/v1/observations?${params.toString()}`);
   },
   health: () => get<{ status: string; model_version: string; demo_only: boolean }>('/health'),
+  readiness: () => get<ReadinessSnapshot>('/api/v1/ops/readiness'),
 };
