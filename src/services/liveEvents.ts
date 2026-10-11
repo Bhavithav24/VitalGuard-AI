@@ -26,7 +26,7 @@ export function createLiveSocket(onEvent: (event: LiveEvent) => void, onStatus: 
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
   let heartbeat: ReturnType<typeof setInterval> | undefined;
 
-  const connect = () => {
+  const connect = async () => {
     if (stopped) return;
     onStatus(retry === 0 ? 'connecting' : 'reconnecting');
     const base = APP_CONFIG.apiBaseUrl;
