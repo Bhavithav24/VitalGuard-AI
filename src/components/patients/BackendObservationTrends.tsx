@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Activity, ArrowDownRight, ArrowRight, ArrowUpRight, RefreshCw, TrendingUp } from 'lucide-react';
 import { APP_CONFIG } from '../../services/config.ts';
+import { authorizedFetch } from '../../services/authenticatedFetch.ts';
 
 type Trend = {
   metric: string;
@@ -42,7 +43,7 @@ export function BackendObservationTrends({ patientId }: { patientId: string }) {
     setLoading(true);
     try {
       const params = new URLSearchParams({ patient_id: patientId, limit: '50' });
-      const response = await fetch(`${APP_CONFIG.apiBaseUrl}/api/v1/observations/trends?${params}`, {
+      const response = await authorizedFetch(`${APP_CONFIG.apiBaseUrl}/api/v1/observations/trends?${params}`, {
         signal: AbortSignal.timeout(8000),
       });
       if (!response.ok) throw new Error(`Trend API returned ${response.status}`);
