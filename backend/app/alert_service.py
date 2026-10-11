@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 from datetime import timezone
-from sqlalchemy import insert, select, update, desc
+from sqlalchemy import insert, select, update, desc, or_
 from sqlalchemy.exc import IntegrityError
 from .storage import _engine
 from .storage_schema import alerts, audit_events
@@ -55,7 +55,7 @@ def create_alert(*, patient_id: str, event_key: str, severity: str, title: str, 
         engine.dispose()
 
 
-def list_alerts(status: str | None = None, patient_id: str | None = None, limit: int = 50) -> list[dict]:
+def list_alerts(status: str | None = None, patient_id: str | None = None, limit: int = 50, patient_prefixes: list[str] | None = None) -> list[dict]:
     engine = _engine()
     try:
         query = select(alerts)
@@ -63,6 +63,10 @@ def list_alerts(status: str | None = None, patient_id: str | None = None, limit:
             query = query.where(alerts.c.status == status)
         if patient_id:
             query = query.where(alerts.c.patient_id == patient_id)
+        elif patient_prefixes is not None:
+            if not patient_prefixes:
+                return []
+            query = query.where(or_(*[alerts.c.patient_id.startswith(prefix, autoescape=True) for prefix in patient_prefixes]))
         query = query.order_by(desc(alerts.c.id)).limit(limit)
         with engine.connect() as connection:
             return [_serialize(row) for row in connection.execute(query).mappings().all()]
