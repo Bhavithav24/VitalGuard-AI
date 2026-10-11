@@ -118,7 +118,7 @@ def operational_readiness(principal: dict = Depends(authenticate_principal)):
             "database": database_status,
             "operator_auth_configured": auth_configured,
             "model_loaded": True,
-            "websocket_transport": "process_local_best_effort",
+            "websocket_transport": hub.transport,
         },
         "database_backend": database.get("backend", "unknown"),
         "model_version": MODEL_VERSION,
@@ -126,7 +126,7 @@ def operational_readiness(principal: dict = Depends(authenticate_principal)):
         "clinically_validated": False,
         "notes": [
             "Synthetic demo only; no clinical-use readiness is implied.",
-            "WebSocket fan-out is process-local and best-effort.",
+            "Real-time transport uses shared Redis/Valkey Pub/Sub when REDIS_URL is configured; REST history remains the recovery path.",
         ],
     }
 
