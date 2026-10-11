@@ -7,7 +7,28 @@ services:
     staticPublishPath: dist
     routes:
       # Required for React client-side routes such as /dashboard and /settings.
-      # Serve index.html so the client-side router can render the requested path.
       - type: rewrite
         source: /*
         destination: /index.html
+
+  # Existing shared Render Key Value service for distributed auth state.
+  - type: keyvalue
+    name: vitalguard-realtime-bhavithav
+    plan: free
+    region: singapore
+    maxmemoryPolicy: noeviction
+    persistenceMode: off
+    ipAllowList: []
+
+  - type: web
+    runtime: python
+    name: vitalguard-risk-api-bhavithav
+    branch: main
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          name: vitalguard-realtime-bhavithav
+          type: keyvalue
+          property: connectionString
