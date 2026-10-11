@@ -107,9 +107,11 @@ def operational_readiness(principal: dict = Depends(authenticate_principal)):
     except Exception:
         database = {"status": "unavailable"}
         database_status = "unavailable"
-    auth_configured = all(os.getenv(name, "").strip() for name in (
-        "VITALGUARD_AUTH_USERNAME", "VITALGUARD_AUTH_PASSWORD", "VITALGUARD_AUTH_SECRET"
-    ))
+    auth_configured = bool(os.getenv("VITALGUARD_AUTH_SECRET", "").strip()) and (
+        bool(os.getenv("VITALGUARD_AUTH_USERS_JSON", "").strip()) or
+        (bool(os.getenv("VITALGUARD_AUTH_USERNAME", "").strip()) and
+         bool(os.getenv("VITALGUARD_AUTH_PASSWORD", "").strip() or os.getenv("VITALGUARD_AUTH_PASSWORD_HASH", "").strip()))
+    )
     ready = database_status == "ok" and auth_configured
     return {
         "status": "ready" if ready else "degraded",
