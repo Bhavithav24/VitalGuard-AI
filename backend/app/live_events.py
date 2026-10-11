@@ -22,7 +22,7 @@ class LiveEventHub:
     def __init__(self, send_timeout_seconds: float = 2.0) -> None:
         if send_timeout_seconds <= 0:
             raise ValueError("send_timeout_seconds must be positive")
-        self._clients: set[WebSocket] = set()
+        self._clients: dict[WebSocket, str] = {}
         self._lock = asyncio.Lock()
         self._send_timeout_seconds = send_timeout_seconds
         self._redis = None
@@ -66,21 +66,26 @@ class LiveEventHub:
             self._redis = None
         self.transport = "process_local_best_effort"
 
-    async def connect(self, websocket: WebSocket) -> None:
+    async def connect(self, websocket: WebSocket, scope: str) -> None:
         await websocket.accept()
         async with self._lock:
-            self._clients.add(websocket)
+            self._clients[websocket] = scope
         await websocket.send_json({"type": "connected", "demo_only": True, "transport": self.transport})
 
     async def disconnect(self, websocket: WebSocket) -> None:
         async with self._lock:
-            self._clients.discard(websocket)
+            self._clients.pop(websocket, None)
 
     async def _send_local(self, event: dict) -> None:
         async with self._lock:
-            clients = list(self._clients)
+            clients = list(self._clients.items())
         stale = []
-        for client in clients:
+        patient_id = event.get("patient_id")
+        for client, scope in clients:
+            if patient_id is not None and scope != "*" and not any(
+                patient_id.startswith(prefix) for prefix in scope.split(",") if prefix
+            ):
+                continue
             try:
                 await asyncio.wait_for(client.send_json(event), timeout=self._send_timeout_seconds)
             except Exception:
@@ -88,7 +93,7 @@ class LiveEventHub:
         if stale:
             async with self._lock:
                 for client in stale:
-                    self._clients.discard(client)
+                    self._clients.pop(client, None)
 
     async def _listen_shared_events(self) -> None:
         while self._pubsub:
@@ -111,8 +116,8 @@ class LiveEventHub:
                 self.transport = "process_local_best_effort"
         await self._send_local(event)
 
-    async def serve(self, websocket: WebSocket) -> None:
-        await self.connect(websocket)
+    async def serve(self, websocket: WebSocket, scope: str) -> None:
+        await self.connect(websocket, scope)
         try:
             while True:
                 message = await websocket.receive_text()
