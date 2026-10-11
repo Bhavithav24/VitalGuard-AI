@@ -154,6 +154,14 @@ Run `npm run smoke:api` to check health, model metadata, frontend CORS preflight
 - Run via GitHub Actions → Live API smoke test → Run workflow.
 - The workflow creates synthetic demo records; never send real patient data.
 
-## Roadmap
+## Delivery plan and current project phase
 
-See [docs/REALTIME_DEMO_ROADMAP.md](docs/REALTIME_DEMO_ROADMAP.md) for phases, acceptance criteria, and current limitations. See [docs/RENDER_RELEASE_RUNBOOK.md](docs/RENDER_RELEASE_RUNBOOK.md) for the actual Render service branches, deploy verification, and release smoke-test procedure. The delivered phase status and remaining deployment requirements are tracked in the roadmap. Hosted PostgreSQL, identity/access controls, cross-instance event delivery, and any clinically meaningful model remain outstanding.
+The repository has two phase histories: the legacy feature roadmap below documents already-built demo capabilities, while the sequential production-readiness plan defines the work to do next. Do not confuse legacy feature phase numbers with the new delivery phases.
+
+- [Master delivery plan](docs/MASTER_DELIVERY_PLAN.md) — full sequential phases 0–20 and release gates.
+- [Phase 0 audit](docs/PHASE_0_AUDIT.md) — current repository, Render baseline and gaps.
+- [Phase 1 requirements](docs/PHASE_1_REQUIREMENTS.md) — product, data, security, model and safety requirements.
+- [Legacy demo feature roadmap](docs/REALTIME_DEMO_ROADMAP.md) — delivered prototype capabilities and limitations.
+- [Render release runbook](docs/RENDER_RELEASE_RUNBOOK.md) — service branches and deployment verification.
+
+Current delivery phase: Phase 1 requirements baseline documented. Hosted PostgreSQL configuration, authentication/authorization, live end-to-end verification and clinical validation remain outstanding.
