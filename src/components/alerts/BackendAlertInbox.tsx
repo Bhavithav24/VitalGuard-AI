@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ChevronDown, Clock3, History, RefreshCw, ShieldAlert, WifiOff } from 'lucide-react';
 import { APP_CONFIG } from '../../services/config.ts';
+import { authorizedFetch } from '../../services/authenticatedFetch.ts';
 import { useLiveEvents } from '../../services/useLiveEvents.ts';
 
 type BackendAlert = {
@@ -35,27 +36,9 @@ type EscalationPreview = {
 };
 
 async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers(init?.headers);
-  // Attach the operator session token to every protected backend request.
-  try {
-    const raw = sessionStorage.getItem('vitalguard.operator.session');
-    if (raw) {
-      const session = JSON.parse(raw) as { token?: string; expiresAt?: number };
-      if (session.token && session.expiresAt && session.expiresAt > Date.now()) {
-        headers.set('Authorization', 'Bearer ' + session.token);
-      } else {
-        sessionStorage.removeItem('vitalguard.operator.session');
-      }
-    }
-  } catch {
-    sessionStorage.removeItem('vitalguard.operator.session');
-  }
-  // Avoid unnecessary browser CORS preflights on GET requests.
-  if (init?.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  const response = await fetch(`${APP_CONFIG.apiBaseUrl}${path}`, {
+  const response = await authorizedFetch(`${APP_CONFIG.apiBaseUrl}${path}`, {
     ...init,
-    headers,
-    signal: AbortSignal.timeout(8000),
+    signal: init?.signal ?? AbortSignal.timeout(8000),
   });
   if (!response.ok) throw new Error(`Alert API request failed (${response.status})`);
   return response.json() as Promise<T>;
