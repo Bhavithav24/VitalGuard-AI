@@ -7,9 +7,9 @@ from .model import MODEL_VERSION, explain, predict_probability, risk_level
 from .schemas import RiskPrediction
 from .simulator import observation_for_step
 from .storage import save_observation
-from .auth import authenticate_principal
+from .auth import require_roles
 
-router = APIRouter(prefix="/api/v1/demo", tags=["demo-simulator"], dependencies=[Depends(authenticate_principal)])
+router = APIRouter(prefix="/api/v1/demo", tags=["demo-simulator"], dependencies=[Depends(require_roles("admin", "operator"))])
 
 class SimulationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -19,7 +19,6 @@ class SimulationRequest(BaseModel):
 
 @router.post("/observations", response_model=RiskPrediction)
 async def submit_demo_observation(payload: SimulationRequest):
-    """Generate, score, persist, then broadcast one fictional observation."""
     values = observation_for_step(payload.scenario, payload.step)
     probability = predict_probability(values)
     score = round(probability * 100)
