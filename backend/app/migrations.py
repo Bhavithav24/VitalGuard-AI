@@ -5,7 +5,7 @@ new version rather than editing a previously released migration. This remains
 a lightweight SQLAlchemy migration runner; a managed PostgreSQL service and
 backup/restore drill are separate release requirements.
 """
-from sqlalchemy import Column, DateTime, Integer, MetaData, Table, func, insert, select, text
+from sqlalchemy import Column, DateTime, Integer, MetaData, Table, func, insert, inspect, select, text
 from sqlalchemy.engine import Engine
 
 from .storage import _METADATA
@@ -21,7 +21,7 @@ MIGRATIONS = Table(
 
 # Keep migration definitions immutable after release. Each step should be
 # safe to re-run after an interrupted startup.
-LATEST_VERSION = 3
+LATEST_VERSION = 4
 
 
 
@@ -68,6 +68,31 @@ def migrate(engine: Engine) -> None:
     else:
         # Repair a missing table after an interrupted restore without rewriting the ledger.
         _INGESTION_METADATA.create_all(engine)
+
+    applied = _applied_versions(engine)
+    if 4 not in applied:
+        inspector = inspect(engine)
+        existing = {column["name"] for column in inspector.get_columns("patients")}
+        with engine.begin() as connection:
+            if "external_identifier" not in existing:
+                connection.execute(text("ALTER TABLE patients ADD COLUMN external_identifier VARCHAR(128)"))
+            if "age" not in existing:
+                connection.execute(text("ALTER TABLE patients ADD COLUMN age INTEGER"))
+            if "sex" not in existing:
+                connection.execute(text("ALTER TABLE patients ADD COLUMN sex VARCHAR(32)"))
+            if "bed" not in existing:
+                connection.execute(text("ALTER TABLE patients ADD COLUMN bed VARCHAR(40)"))
+            if "active" not in existing:
+                connection.execute(text("ALTER TABLE patients ADD COLUMN active BOOLEAN DEFAULT TRUE"))
+            if "deactivated_at" not in existing:
+                connection.execute(text("ALTER TABLE patients ADD COLUMN deactivated_at TIMESTAMP"))
+            connection.execute(text("UPDATE patients SET external_identifier = patient_id WHERE external_identifier IS NULL"))
+            connection.execute(text("UPDATE patients SET active = TRUE WHERE active IS NULL"))
+            connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_patients_external_identifier_idx ON patients (external_identifier)"))
+        _record_version(engine, 4)
+    else:
+        with engine.begin() as connection:
+            connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_patients_external_identifier_idx ON patients (external_identifier)"))
 
     applied = _applied_versions(engine)
     expected = set(range(1, LATEST_VERSION + 1))
