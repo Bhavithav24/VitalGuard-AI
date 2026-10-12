@@ -89,7 +89,7 @@ def get_patient(patient_id: str, principal: Annotated[dict[str, str], Depends(au
     return _serialize(_require_scoped_patient(patient_id, principal))
 
 @router.patch("/{patient_id}")
-def update_patient(patient_id: str, payload: PatientUpdate, principal: Annotated[dict[str, str], Depends(require_roles("admin", "operator"))]):
+def update_patient(patient_id: str, payload: PatientUpdate, principal: Annotated[dict[str, str], Depends(require_roles("admin", "clinician"))]):
     current = _require_scoped_patient(patient_id, principal)
     if not current["active"]: raise HTTPException(status_code=409, detail="Inactive patient must be reactivated through an explicit workflow")
     changes = {k:v for k,v in payload.model_dump(exclude_unset=True).items() if v is not None}
