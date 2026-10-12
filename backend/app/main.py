@@ -43,7 +43,7 @@ app.include_router(trend_router)
 _default_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 _origins = os.getenv("CORS_ORIGINS", ",".join(_default_origins))
 app.add_middleware(CORSMiddleware, allow_origins=[origin.strip() for origin in _origins.split(",") if origin.strip()],
-    allow_credentials=False, allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type", "Authorization"])
+    allow_credentials=False, allow_methods=["GET", "POST", "PATCH", "OPTIONS"], allow_headers=["Content-Type", "Authorization"])
 
 # Process-local operational counters. Never store query strings, patient IDs, or request bodies.
 _metrics_lock = threading.Lock()
@@ -80,7 +80,7 @@ async def add_security_headers(request: Request, call_next):
 async def _publish_observation(patient_id: str, values: dict, result: RiskPrediction, saved: dict) -> None:
     await hub.broadcast({"type": "observation.created", "event_id": saved["id"],
         "patient_id": patient_id, "created_at": saved["created_at"], "observation": values,
-        "prediction": result.model_dump(), "demo_only": False})
+        "prediction": result.model_dump(), "demo_only": True})
 
 def _maybe_create_alert(patient_id: str, score: int, level: str, observation_id: int, values: dict):
     if score < 65:
@@ -197,7 +197,7 @@ async def predict(payload: VitalInput, principal: dict = Depends(require_roles("
     score = round(probability * 100)
     level = risk_level(score)
     result = RiskPrediction(patient_id=payload.patient_id, risk_score=score, risk_level=level,
-        model_probability=round(probability, 4), factors=explain(values), model_version=MODEL_VERSION)
+        model_probability=round(probability, 4), factors=explain(values), model_version=MODEL_VERSION, demo_only=True)
     saved = save_observation(payload.patient_id, values, result.model_dump())
     response = result.model_copy(update={"observation_id": saved["id"], "created_at": saved["created_at"]})
     await _publish_observation(payload.patient_id, values, response, saved)
