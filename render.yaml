@@ -54,8 +54,6 @@ services:
         sync: false
       - key: VITALGUARD_DEMO_TELEMETRY_ENABLED
         value: "true"
-      - key: VITALGUARD_DEMO_TELEMETRY_LOOP_ENABLED
-        value: "false"
 
 databases:
   # Existing Render Postgres service. Free tier is suitable for demo use only
