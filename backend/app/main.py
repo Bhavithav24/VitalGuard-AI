@@ -25,7 +25,6 @@ from .storage import database_health, initialize_storage, list_observations, sav
 from .auth import router as auth_router, authenticate_principal, require_roles, require_patient_access, patient_scope_prefixes, _consume_ws_ticket, validate_access_token
 from .ingestion_routes import router as ingestion_router
 from .demo_telemetry import router as demo_router, emit_demo_tick
-from .demo_telemetry import router as demo_router
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -53,7 +52,7 @@ async def lifespan(_app: FastAPI):
         await hub.stop()
 
 app = FastAPI(title="VitalGuard AI Risk Engine", version="0.8.0",
-    description="VitalGuard AI clinical monitoring prototype API. No live clinical source is bundled; only authorized ingestion and explicit historical replay are accepted.", lifespan=lifespan)
+    description="VitalGuard AI clinical monitoring prototype API. The deployed demo may emit controlled monitor-style demo telemetry; live clinical ingestion still requires an authorized source.", lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(ingestion_router)
 app.include_router(demo_router)
