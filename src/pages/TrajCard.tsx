@@ -23,7 +23,7 @@ export function TrajCard({ patientId }: { patientId: string }) {
   return (
     <div className="mt-4">
       <SectionCard eyebrow="Trajectory" title="Risk trajectory" hint="Signal over the 2-hour window · thresholds at 65 / 85"
-        label="Risk trajectory" action={<RiskBadge level={r.level} score={r.score} />}>
+        label="Risk trajectory" action={<RiskBadge level={r.level} score={r.score ?? undefined} />}>
         <div className="grid lg:grid-cols-[minmax(0,1fr)_240px] gap-4 items-stretch">
           <div className="rounded-2xl border border-slate-200/60 dark:border-white/[0.07] bg-slate-50/50 dark:bg-white/[0.02] p-3">
             <RiskTrajectoryChart data={r.trajectory} labels={r.trajectoryLabels} height={260} id={`vg-traj-${patientId}`} />
