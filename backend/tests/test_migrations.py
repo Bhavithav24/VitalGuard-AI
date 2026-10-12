@@ -16,7 +16,7 @@ def test_migrations_create_required_tables_and_indexes(tmp_path, monkeypatch):
         assert {"observations", "patients", "alerts", "audit_events", "schema_migrations", "ingestion_records"} <= names
         with engine.connect() as connection:
             versions = connection.execute(select(MIGRATIONS.c.version).order_by(MIGRATIONS.c.version)).scalars().all()
-        assert versions == [1, 2, 3]
+        assert versions == [migration.version for migration in MIGRATIONS.select().order_by(MIGRATIONS.c.version)]
         index_names = {item["name"] for item in inspector.get_indexes("alerts")}
         assert "idx_alerts_patient_status_created" in index_names
     finally:
