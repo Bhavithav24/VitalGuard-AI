@@ -4,7 +4,7 @@ from sqlalchemy.engine import Engine
 from .storage import _METADATA
 from .storage_schema import metadata as _EXTENDED_METADATA
 from .ingestion_schema import metadata as _INGESTION_METADATA
-_MIGRATION_METADATA=MetaData();MIGRATIONS=Table("schema_migrations",_MIGRATION_METADATA,Column("version",Integer,primary_key=True),Column("applied_at",DateTime(timezone=True),nullable=False,server_default=func.now()));LATEST_VERSION=6
+_MIGRATION_METADATA=MetaData();MIGRATIONS=Table("schema_migrations",_MIGRATION_METADATA,Column("version",Integer,primary_key=True),Column("applied_at",DateTime(timezone=True),nullable=False,server_default=func.now()));LATEST_VERSION=7
 def _applied_versions(engine:Engine):
     with engine.connect() as c:return set(c.execute(select(MIGRATIONS.c.version)).scalars())
 def _record_version(engine,version):
@@ -41,5 +41,14 @@ def migrate(engine:Engine):
         _record_version(engine,5)
     applied=_applied_versions(engine)
     if 6 not in applied:_EXTENDED_METADATA.create_all(engine);_INGESTION_METADATA.create_all(engine);_record_version(engine,6)
+    applied=_applied_versions(engine)
+    if 7 not in applied:
+        inspector=inspect(engine)
+        if engine.dialect.name == "postgresql":
+            risk_columns={x["name"]:x for x in inspector.get_columns("risk_assessments")}
+            if risk_columns.get("risk_score", {}).get("nullable") is False:
+                with engine.begin() as c:
+                    c.execute(text("ALTER TABLE risk_assessments ALTER COLUMN risk_score DROP NOT NULL"))
+        _record_version(engine,7)
     applied=_applied_versions(engine);expected=set(range(1,LATEST_VERSION+1))
     if not expected.issubset(applied):raise RuntimeError(f"Database migrations incomplete: expected {sorted(expected)}, found {sorted(applied)}")
