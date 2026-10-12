@@ -92,20 +92,12 @@ def test_realtime_events_are_filtered_by_patient_scope():
 
 
 def test_unscoped_observation_history_is_filtered(scoped_client):
-    allowed = scoped_client.post(
-        "/api/v1/risk/predict",
-        json={
-            "patient_id": "DEMO-TEAM-A-001",
-            "age": 58,
-            "heart_rate": 82,
-            "spo2": 98,
-            "systolic_bp": 122,
-            "diastolic_bp": 78,
-            "temperature": 37,
-            "respiratory_rate": 16,
-        },
-    )
-    assert allowed.status_code == 200
+    # The route is intentionally unavailable until a validated clinical model is configured.
+    allowed = scoped_client.post("/api/v1/risk/predict", json={
+        "patient_id": "DEMO-TEAM-A-001", "age": 58, "heart_rate": 82, "spo2": 98,
+        "systolic_bp": 122, "diastolic_bp": 78, "temperature": 37, "respiratory_rate": 16,
+    })
+    assert allowed.status_code == 503
     response = scoped_client.get("/api/v1/observations")
     assert response.status_code == 200
     assert all(item["patient_id"].startswith("DEMO-TEAM-A-") for item in response.json()["items"])
