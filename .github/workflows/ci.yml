@@ -33,3 +33,5 @@ jobs:
       - run: PYTHONPATH=backend pytest backend/tests -q
 
 # Production branch validation enabled.
+
+# Test suite aligned with backend-authoritative UI.
