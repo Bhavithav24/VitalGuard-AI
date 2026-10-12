@@ -43,7 +43,7 @@ def test_acknowledge_assign_resolve_and_audit(client):
     audit = client.get(f"/api/v1/alerts/{alert_id}/audit")
     assert audit.status_code == 200
     actions = [item["action"] for item in audit.json()["items"]]
-    assert actions == ["created", "acknowledged", "assign", "resolve"]
+    assert actions == ["created", "acknowledge", "assign", "resolve"]
 
 def test_unknown_alert_returns_404(client):
     response = client.post("/api/v1/alerts/99999/resolve", json={"actor": "demo-clinician"})

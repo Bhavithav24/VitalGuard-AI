@@ -50,7 +50,7 @@ export interface ReadinessSnapshot {
   checks: {
     api: string;
     database: string;
-    operator_auth_configured: boolean;
+    auth_configured: boolean;
     model_loaded: boolean;
     websocket_transport: string;
   };
