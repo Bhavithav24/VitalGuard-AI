@@ -53,6 +53,6 @@ export function SimulationProvider({children}:{children:ReactNode}){
   useEffect(()=>{document.documentElement.classList.toggle('dark',theme==='dark')},[theme]);
   const setTheme=useCallback((t:'light'|'dark')=>{setThemeState(t);localStorage.setItem('vg-theme',t)},[]);
   const acknowledge=useCallback((id:string)=>{void api.acknowledgeAlert(id).then(load).catch(()=>undefined)},[load]);
-  const value=useMemo(()=>({...state,toasts:[],running:false,tick:0,speed:'normal' as const,multiplier:1 as const,lastRefresh,start:()=>undefined,pause:()=>undefined,reset:()=>void load(),refresh:()=>void load(),dismissToast:()=>undefined,setSpeed:()=>undefined,setMultiplier:()=>undefined,acknowledge,undoAcknowledge:()=>undefined,dataSource:'api' as const,setDataSource:()=>undefined,theme,setTheme}),[state,lastRefresh,load,acknowledge,theme,setTheme]);
+  const value=useMemo(()=>({...state,streamStatus:status,toasts:[],running:false,tick:0,speed:'normal' as const,multiplier:1 as const,lastRefresh,start:()=>undefined,pause:()=>undefined,reset:()=>void load(),refresh:()=>void load(),dismissToast:()=>undefined,setSpeed:()=>undefined,setMultiplier:()=>undefined,acknowledge,undoAcknowledge:()=>undefined,dataSource:'api' as const,setDataSource:()=>undefined,theme,setTheme}),[state,status,lastRefresh,load,acknowledge,theme,setTheme]);
   return <SimCtx.Provider value={value}>{children}</SimCtx.Provider>;
 }
