@@ -55,7 +55,7 @@ def test_prediction_is_saved_and_returns_observation_metadata(client):
     assert 0 <= body["risk_score"] <= 100
     assert body["risk_level"] in {"low", "moderate", "high", "critical"}
     assert 0 <= body["model_probability"] <= 1
-    assert body["demo_only"] is True
+    assert body["demo_only"] is False
     assert isinstance(body["factors"], list)
     assert body["observation_id"] > 0
     assert body["created_at"]
