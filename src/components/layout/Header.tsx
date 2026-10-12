@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useSimulation } from '../../store/useSimulation.ts';
 import { formatTimeAgo } from '../../utils/format.ts';
 import { useOptionalAuth } from '../../store/AuthContext.tsx';
+import { useLiveEvents } from '../../services/useLiveEvents.ts';
 
 export function Header({ title, subtitle }: { title: string; subtitle?: string }) {
   const { alerts, lastRefresh, refresh } = useSimulation();
@@ -11,6 +12,7 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
   const username = auth?.username ?? null;
   const role = auth?.role ?? null;
   const logout = auth?.logout ?? (() => {});
+  const { status: streamStatus } = useLiveEvents();
   const open = alerts.filter((a) => a.status === 'open').length;
   const initials = (username || 'Operator')
     .split(/[\s._-]+/)
@@ -27,9 +29,9 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
           {subtitle && <p className="text-xs text-slate-500 truncate mt-0.5">{subtitle}</p>}
         </div>
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/70 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-900/60">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
-            Backend connected
+          <span className={`hidden sm:inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-full border ${streamStatus==='connected'?'border-emerald-200/80 bg-emerald-50/70 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-900/60':'border-amber-200/80 bg-amber-50/70 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200 dark:border-amber-900/60'}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${streamStatus==='connected'?'bg-emerald-500':'bg-amber-500'}`} aria-hidden />
+            {streamStatus==='connected'?'Stream connected':streamStatus==='reconnecting'?'Stream reconnecting':streamStatus==='connecting'?'Connecting stream':'Stream offline'}
           </span>
           <span className="hidden xl:inline text-[11px] text-slate-400 tabular-nums" title="Last data refresh">
             Updated {formatTimeAgo(lastRefresh)}
