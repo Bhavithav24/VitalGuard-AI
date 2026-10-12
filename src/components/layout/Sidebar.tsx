@@ -65,7 +65,7 @@ function SideFoot() {
         </p>
         <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400 flex items-start gap-1.5">
           <ShieldCheck size={13} aria-hidden className="mt-0.5 shrink-0" />
-          <span>Prototype · synthetic data, not for clinical use.</span>
+          <span>Backend-authoritative workspace · authorized sources only.</span>
         </p>
       </div>
     </div>
@@ -95,7 +95,7 @@ export function MobileNav() {
           <span className="h-7 w-7 rounded-lg text-white grid place-items-center" style={{ background: 'linear-gradient(135deg,#0f766e,#0891b2)' }}><Activity size={15} /></span>
           VitalGuard AI
         </span>
-        <span className="ml-auto text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-slate-900/[0.04] text-slate-500 dark:bg-white/[0.07]">PROTOTYPE</span>
+        <span className="ml-auto text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-slate-900/[0.04] text-slate-500 dark:bg-white/[0.07]" >LIVE WORKSPACE</span>
       </div>
       {open && (
         <div className="lg:hidden fixed inset-0 z-40" role="dialog" aria-modal="true" aria-label="Site navigation">

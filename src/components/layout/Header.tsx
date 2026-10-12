@@ -6,7 +6,7 @@ import { formatTimeAgo } from '../../utils/format.ts';
 import { useOptionalAuth } from '../../store/AuthContext.tsx';
 
 export function Header({ title, subtitle }: { title: string; subtitle?: string }) {
-  const { alerts, running, lastRefresh, refresh } = useSimulation();
+  const { alerts, lastRefresh, refresh } = useSimulation();
   const auth = useOptionalAuth();
   const username = auth?.username ?? null;
   const role = auth?.role ?? null;
@@ -22,15 +22,15 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
         </div>
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/70 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-900/60">
-            <span className={`h-1.5 w-1.5 rounded-full ${running ? 'bg-emerald-500 pulse-dot' : 'bg-emerald-500'}`} aria-hidden />
-            {running ? 'Simulation running' : 'Simulation paused'}
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+            Backend connected
           </span>
           <span className="hidden xl:inline text-[11px] text-slate-400 tabular-nums" title="Last data refresh">
             Updated {formatTimeAgo(lastRefresh)}
           </span>
           <button
-            aria-label="Refresh demo data timestamps"
-            title="Refresh demo data timestamps"
+            aria-label="Refresh backend data timestamps"
+            title="Refresh backend data timestamps"
             onClick={() => { setSpinning(true); refresh(); window.setTimeout(() => setSpinning(false), 600); }}
             className="icon-btn"
           >
@@ -43,7 +43,7 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
             )}
           </Link>
           <span className="hidden md:grid place-items-center h-9 w-9 rounded-full text-white text-xs font-extrabold" style={{ background: 'linear-gradient(135deg,#0f766e,#0891b2)' }} aria-hidden>DR</span>
-          <span className="hidden lg:inline max-w-28 truncate text-xs text-slate-500" title={username ?? "Operator"}>{username ?? "Operator"}</span>\n          {role && <span className="hidden sm:inline-flex px-2 py-1 rounded-md bg-slate-100 dark:bg-white/10 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">{role}</span>}
+          <span className="hidden lg:inline max-w-28 truncate text-xs text-slate-500" title={username ?? "User"}>{username ?? "Operator"}</span>\n          {role && <span className="hidden sm:inline-flex px-2 py-1 rounded-md bg-slate-100 dark:bg-white/10 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">{role}</span>}
           <button type="button" onClick={logout} aria-label="Sign out" title="Sign out" className="icon-btn"><LogOut size={17} aria-hidden /></button>
         </div>
       </div>

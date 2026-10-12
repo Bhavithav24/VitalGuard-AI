@@ -33,8 +33,8 @@ _REDIS_UNAVAILABLE = object()
 _PROCESS_AUTH_EPOCH = secrets.token_urlsafe(24)
 _WS_TICKET_TTL_SECONDS = 60
 _WS_TICKETS: dict[str, tuple[str, float]] = {}
-Role = Literal["admin", "operator", "viewer"]
-_VALID_ROLES = {"admin", "operator", "viewer"}
+Role = Literal["admin", "clinician", "nurse"]
+_VALID_ROLES = {"admin", "clinician", "nurse"}
 
 
 class LoginRequest(BaseModel):
@@ -71,6 +71,7 @@ def _credentials() -> tuple[str, str, str, str, Role]:
     password_hash = os.getenv("VITALGUARD_AUTH_PASSWORD_HASH", "").strip()
     secret = os.getenv("VITALGUARD_AUTH_SECRET", "")
     role = os.getenv("VITALGUARD_AUTH_ROLE", "admin").strip().lower()
+    role = {"operator": "clinician", "viewer": "nurse"}.get(role, role)
     if role not in _VALID_ROLES:
         raise HTTPException(status_code=503, detail="Authentication role is invalid")
     if not secret or len(secret) < 32:
@@ -96,6 +97,7 @@ def _accounts() -> list[dict[str, str]]:
             username = str(record.get("username", "")).strip()
             password_hash = str(record.get("password_hash", "")).strip()
             role = str(record.get("role", "")).strip().lower()
+            role = {"operator": "clinician", "viewer": "nurse"}.get(role, role)
             enabled = record.get("enabled", True)
             raw_prefixes = record.get("patient_prefixes", ["*"])
             if isinstance(raw_prefixes, str):
@@ -182,7 +184,9 @@ def require_roles(*allowed_roles: Role):
         raise ValueError("At least one allowed role is required")
 
     def dependency(principal: Annotated[dict[str, str], Depends(authenticate_principal)]) -> dict[str, str]:
-        if principal.get("role") not in allowed_roles:
+        normalized = {"operator": "clinician", "viewer": "nurse"}.get(principal.get("role"), principal.get("role"))
+        allowed = {{"operator": "clinician", "viewer": "nurse"}.get(role, role) for role in allowed_roles}
+        if normalized not in allowed:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
         return principal
 
@@ -344,7 +348,7 @@ def login(request: Request, payload: LoginRequest) -> TokenResponse:
             recent.append(time.monotonic())
             _login_attempts[client_key] = recent[-_LOGIN_MAX_ATTEMPTS:]
         record_security_event("login_failed", "anonymous", {"account_match": account is not None})
-        raise HTTPException(status_code=401, detail="Invalid username or password", headers={"WWW-Authenticate": "Bearer"})
+        raise HTTPException(status_code=401, detail="Authentication failed", headers={"WWW-Authenticate": "Bearer"})
     _clear_login_rate_limit(client_key)
     token = _serializer(secret).dumps({"sub": account["username"], "type": "access", "role": account["role"], "scope": account.get("patient_prefixes", "*"), "jti": secrets.token_urlsafe(18), "epoch": _auth_epoch()})
     record_security_event("login_succeeded", account["username"], {"role": account["role"]})
@@ -373,14 +377,18 @@ def logout(principal: Annotated[dict[str, str], Depends(authenticate_principal)]
     return None
 
 
+@router.get("/users")
+def list_users(principal: Annotated[dict[str, str], Depends(require_roles("admin"))]):
+    return {"items": [{"username": a["username"], "role": a["role"], "enabled": a["enabled"] == "true", "patient_scope": a.get("patient_prefixes", "*")} for a in _accounts()]}
+
 @router.get("/roles")
 def role_permissions(principal: Annotated[dict[str, str], Depends(authenticate_principal)]):
     return {
         "current_role": principal["role"],
         "roles": {
-            "admin": ["read", "predict", "ingest", "manage_alerts", "operations"],
-            "operator": ["read", "predict", "ingest", "manage_alerts"],
-            "viewer": ["read", "explain"],
+            "admin": ["read", "predict", "ingest", "manage_patients", "manage_alerts", "manage_users", "operations"],
+            "clinician": ["read", "predict", "ingest", "manage_patients", "manage_alerts"],
+            "nurse": ["read", "acknowledge_alerts", "explain"],
         },
-        "demo_only": True,
+        "demo_only": False,
     }

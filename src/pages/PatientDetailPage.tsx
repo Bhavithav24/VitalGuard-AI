@@ -11,7 +11,6 @@ import { TrajCard } from './TrajCard.tsx';
 import { ExplainCard, VitalCharts, AlertList } from './DetailSections.tsx';
 import { BackendPatientTimeline } from '../components/patients/BackendPatientTimeline.tsx';
 import { BackendObservationTrends } from '../components/patients/BackendObservationTrends.tsx';
-import { DemoRiskStory } from '../components/risk/DemoRiskStory.tsx';
 export function fmtAgo(iso: string): string {
   const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (m < 1) return 'Just now';
@@ -55,7 +54,6 @@ export function PatientDetailPage() {
         <div className="card p-5 sm:p-6"><News2Panel score={r.news2} /></div>
       </div>
       <TrajCard patientId={patient.id} />
-      <DemoRiskStory patientId={patient.id} />
       <ExplainCard patientId={patient.id} />
       <VitalCharts patientId={patient.id} />
       <AlertList patientId={patient.id} />

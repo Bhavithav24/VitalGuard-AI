@@ -15,10 +15,9 @@ import { useSimulation } from '../store/useSimulation.ts';
 import { DataQualityPanel } from '../components/dashboard/DataQualityPanel.tsx';
 import { BackendObservationHistory } from '../components/dashboard/BackendObservationHistory.tsx';
 import { SystemReadinessCard } from '../components/dashboard/SystemReadinessCard.tsx';
-import { DemoScenarioLauncher } from '../components/dashboard/DemoScenarioLauncher.tsx';
 
 export function DashboardPage() {
-  const { patients, risks, latest, alerts, tick, running } = useSimulation();
+  const { patients, risks, latest, alerts, running } = useSimulation();
   const [filters, setFilters] = useFilterState();
   const filtered = useMemo(() => filterCohort(patients, risks, filters), [patients, risks, filters]);
   const dist = useMemo(() => {
@@ -31,9 +30,9 @@ export function DashboardPage() {
     ];
   }, [risks]);
   const openAlerts = alerts.filter((a) => a.status === 'open').length;
-  const hero = risks['P-SIM-003'];
-  const heroVitals = latest['P-SIM-003'];
-  const heroPatient = patients.find((p) => p.id === 'P-SIM-003');
+  const heroPatient = patients[0];
+  const hero = heroPatient ? risks[heroPatient.id] : undefined;
+  const heroVitals = heroPatient ? latest[heroPatient.id] : undefined;
   return (
     <Shell title="Command Center" subtitle="Real-time clinical intelligence overview">
       <section className="clinical-panel relative overflow-hidden rounded-[24px] p-6 sm:p-8 lg:p-9" aria-label="Clinical intelligence overview">
@@ -45,12 +44,12 @@ export function DashboardPage() {
         <div className="relative max-w-2xl">
           <p className="eyebrow clinical-kicker inline-flex items-center gap-2">
             <span className={`h-1.5 w-1.5 rounded-full ${running ? 'bg-emerald-500 pulse-dot' : 'bg-slate-300'}`} aria-hidden />
-            SIMULATED CLINICAL WORKSPACE · t+{tick}
+            BACKEND MONITORING · {running ? 'streaming' : 'waiting for source data'}
           </p>
           <h2 className="font-display text-[32px] sm:text-[40px] leading-[1.06] font-extrabold tracking-tight mt-2 text-slate-900 dark:text-slate-50">See the signals.<br className="hidden sm:block" /> Prioritise the review.</h2>
-          <p className="text-sm sm:text-[15px] clinical-muted mt-3 leading-relaxed max-w-xl">A unified view of {patients.length} synthetic patient profiles, changing vital-sign scenarios, risk signals and review priorities. For demonstration and evaluation only.</p>
+          <p className="text-sm sm:text-[15px] clinical-muted mt-3 leading-relaxed max-w-xl">A unified view of {patients.length} registered patients, observed vital signs, risk assessments and review priorities. Data is sourced from the backend and persisted before it is displayed.</p>
           <div className="mt-5 flex flex-wrap items-center gap-2.5">
-            <Link to="/patients/P-SIM-003" className="btn-primary">Review priority patient <ArrowUpRight size={15} aria-hidden /></Link>
+            {heroPatient && <Link to={`/patients/${heroPatient.id}`} className="btn-primary">Review priority patient <ArrowUpRight size={15} aria-hidden /></Link>}
             <Link to="/alerts" className="btn-secondary">Open alert center <span className="inline-grid min-w-5 h-5 px-1 place-items-center rounded-md bg-slate-100 text-slate-700 text-[11px]">{openAlerts}</span></Link>
           </div>
         </div>
@@ -64,7 +63,6 @@ export function DashboardPage() {
       <DataQualityPanel />
       <BackendObservationHistory />
       <SystemReadinessCard />
-      <DemoScenarioLauncher />
       {hero && heroVitals && heroPatient && <HeroPatient hero={hero} vitals={heroVitals} patient={heroPatient} />}
       <div className="mt-4"><FilterBar value={filters} onChange={setFilters} resultCount={filtered.length} /></div>
       <div className="mt-4 grid xl:grid-cols-[minmax(0,1fr)_370px] gap-4 items-start">

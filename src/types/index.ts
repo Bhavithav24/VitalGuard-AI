@@ -47,7 +47,7 @@ export interface RiskFactor {
 }
 
 export type AlertSeverity = 'critical' | 'high' | 'moderate' | 'info';
-export type AlertStatus = 'open' | 'acknowledged' | 'resolved';
+export type AlertStatus = 'open' | 'acknowledged' | 'assigned' | 'resolved';
 
 export interface AlertItem {
   id: string;

@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import or_, select, update
 from sqlalchemy.exc import IntegrityError
 
+from .security_audit import record_security_event
 from .auth import authenticate_principal, patient_scope_prefixes, require_patient_access, require_roles
 from .storage import _engine
 from .storage_schema import patients

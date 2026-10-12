@@ -29,7 +29,7 @@ export function ModelEvaluationPanel() {
       setReport(await response.json() as Evaluation);
       setError('');
     } catch {
-      setError('Model evaluation endpoint is not available yet. Check the backend deployment branch and build logs.');
+      setError('Research model evaluation endpoint is not available yet. Check the backend deployment branch and build logs.');
     } finally {
       setLoading(false);
     }
@@ -46,8 +46,8 @@ export function ModelEvaluationPanel() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="eyebrow flex items-center gap-1.5"><Scale size={13} /> Model transparency</p>
-          <h2 id="model-evaluation-heading" className="font-display text-xl font-extrabold mt-1">Model evaluation report</h2>
-          <p className="text-xs text-slate-500 mt-1">Reproducible synthetic holdout · not clinical performance</p>
+          <h2 id="model-evaluation-heading" className="font-display text-xl font-extrabold mt-1">Research model evaluation report</h2>
+          <p className="text-xs text-slate-500 mt-1">Reproducible research holdout · not clinical performance</p>
         </div>
         <button className="btn-secondary" onClick={() => void load()} disabled={loading}>
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh report
@@ -71,10 +71,10 @@ export function ModelEvaluationPanel() {
         <div className="mt-4 grid md:grid-cols-2 gap-4">
           <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 p-3">
             <p className="text-sm font-bold flex items-center gap-1.5"><Activity size={14} /> Confusion matrix</p>
-            <p className="text-xs text-slate-500 mt-1">Rows = actual synthetic class; columns = predicted class</p>
+            <p className="text-xs text-slate-500 mt-1">Rows = actual research-only generated class; columns = predicted class</p>
             <table className="mt-2 w-full text-sm"><tbody>
               {report.confusion_matrix.rows_actual_columns_predicted.map((row, index) => <tr key={index}>
-                <th className="text-left py-2 pr-2 text-xs text-slate-500">{report.confusion_matrix.labels[index]?.replace('synthetic_', '')}</th>
+                <th className="text-left py-2 pr-2 text-xs text-slate-500">{report.confusion_matrix.labels[index]?.replace('research-only generated_', '')}</th>
                 {row.map((value, cell) => <td key={cell} className="text-center py-2 px-3 font-bold tabular-nums border border-slate-200 dark:border-slate-700">{value.toLocaleString()}</td>)}
               </tr>)}
             </tbody></table>

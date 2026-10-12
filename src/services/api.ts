@@ -21,6 +21,7 @@ export interface RiskPredictionResult {
   model_version: string;
   demo_only: true;
   disclaimer: string;
+  news2?: number | null;
 }
 export interface ObservationRecord {
   id: number;
@@ -29,6 +30,11 @@ export interface ObservationRecord {
   inputs: Omit<RiskPredictionInput, 'patient_id'>;
   prediction: RiskPredictionResult;
   model_version: string;
+  observed_at?: string | null;
+  source_system?: string | null;
+  source_mode?: string | null;
+  source_event_id?: string | null;
+  quality?: string | null;
 }
 export interface ObservationHistory {
   items: ObservationRecord[];
@@ -98,4 +104,11 @@ export const api = {
   },
   health: () => get<{ status: string; model_version: string; demo_only: boolean }>('/health'),
   readiness: () => get<ReadinessSnapshot>('/api/v1/ops/readiness'),
+  listAlerts: (patientId?: string) => { const params=new URLSearchParams({limit:'100'}); if(patientId) params.set('patient_id',patientId); return get<{items:Array<Record<string,any>>;count:number}>(`/api/v1/alerts?${params.toString()}`); },
+  createPatient: (payload: {patient_id:string;external_identifier:string;display_name:string;age?:number;sex?:string;unit?:string;bed?:string}) => request('/api/v1/patients',{method:'POST',body:JSON.stringify(payload)}),
+  updatePatient: (id:string,payload:Record<string,unknown>) => request(`/api/v1/patients/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify(payload)}),
+  deactivatePatient: (id:string) => request(`/api/v1/patients/${encodeURIComponent(id)}/deactivate`,{method:'POST'}),
+  acknowledgeAlert: (id:string) => request(`/api/v1/alerts/${encodeURIComponent(id)}/acknowledge`,{method:'POST',body:JSON.stringify({})}),
+  assignAlert: (id:string,actor:string) => request(`/api/v1/alerts/${encodeURIComponent(id)}/assign`,{method:'POST',body:JSON.stringify({actor})}),
+  resolveAlert: (id:string) => request(`/api/v1/alerts/${encodeURIComponent(id)}/resolve`,{method:'POST',body:JSON.stringify({})}),
 };
