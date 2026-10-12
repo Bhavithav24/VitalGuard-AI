@@ -39,8 +39,11 @@ async def lifespan(_app: FastAPI):
     async def _demo_loop():
         while True:
             try:
-                result = await emit_demo_tick()
+                logger.info("Controlled demo telemetry tick starting")
+                result = await asyncio.wait_for(emit_demo_tick(), timeout=20)
                 logger.info("Controlled demo telemetry tick: %s", result)
+            except asyncio.TimeoutError:
+                logger.error("Controlled demo telemetry tick timed out after 20 seconds")
             except Exception:
                 logger.exception("Controlled demo telemetry tick failed")
             await asyncio.sleep(60)
