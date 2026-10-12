@@ -11,7 +11,6 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
   const username = auth?.username ?? null;
   const role = auth?.role ?? null;
   const logout = auth?.logout ?? (() => {});
-  const { status: streamStatus } = useLiveEvents();
   const open = alerts.filter((a) => a.status === 'open').length;
   const initials = (username || 'Operator')
     .split(/[\s._-]+/)
