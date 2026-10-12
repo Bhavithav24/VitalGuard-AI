@@ -53,7 +53,11 @@ def transition_alert(alert_id,action,actor,assignee=None):
             if action=="acknowledge":values.update(acknowledged_by=actor,acknowledged_at=now)
             elif action=="assign":values.update(assigned_to=assignee or actor,assigned_at=now)
             else:values.update(resolved_by=actor,resolved_at=now)
-            c.execute(update(alerts).where(alerts.c.id==alert_id).values(**values));_audit(c,alert_id,action,actor,{"assigned_to":assignee} if action=="assign" else {})
+            updated=c.execute(update(alerts).where(alerts.c.id==alert_id,alerts.c.status==old).values(**values))
+            if updated.rowcount != 1:
+                current=c.execute(select(alerts).where(alerts.c.id==alert_id)).mappings().one()
+                return _serialize(current)
+            _audit(c,alert_id,action,actor,{"assigned_to":assignee} if action=="assign" else {})
             return _serialize(c.execute(select(alerts).where(alerts.c.id==alert_id)).mappings().one())
     finally:engine.dispose()
 def list_alert_audit(alert_id):
