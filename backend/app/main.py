@@ -123,6 +123,7 @@ def operational_readiness(principal: dict = Depends(authenticate_principal)):
             "database": database_status,
             "auth_configured": auth_configured,
             "model_loaded": True,
+            "validated_ml_available": False,
             "websocket_transport": hub.transport,
         },
         "database_backend": database.get("backend", "unknown"),
@@ -211,7 +212,7 @@ def observation_history(patient_id: str | None = Query(default=None, min_length=
     records = list_observations(patient_id=patient_id, limit=limit, before_id=before_id, patient_prefixes=patient_scope_prefixes(principal))
     next_cursor = records[-1]["id"] if len(records) == limit else None
     return {"items": records, "count": len(records), "limit": limit, "next_before_id": next_cursor,
-        "demo_only": True, "disclaimer": "Synthetic demonstration records only; not for clinical use."}
+        "demo_only": True, "disclaimer": "Backend-persisted observations. Historical replay may contain explicitly labelled research data; live observations require an authorized source."}
 
 @app.get("/api/v1/observations/quality")
 def observation_quality(patient_id: str | None = Query(default=None, min_length=1, max_length=64),
