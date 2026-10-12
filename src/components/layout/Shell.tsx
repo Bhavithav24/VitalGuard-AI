@@ -20,7 +20,7 @@ export function Shell({ title, subtitle, children }: { title: string; subtitle?:
           <div className={`flex flex-wrap items-center gap-2 rounded-2xl border px-4 py-2.5 text-xs shadow-[0_8px_24px_-20px_rgba(15,118,110,.55)] ${live ? 'border-teal-200 bg-teal-50 text-teal-800 dark:border-teal-900 dark:bg-teal-950/40 dark:text-teal-200' : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200'}`} role="status" aria-live="polite">
             <span className={`h-2 w-2 rounded-full ${live ? 'bg-teal-500 pulse-dot' : 'bg-amber-500'}`} aria-hidden />
             <strong>Backend live channel: {status}</strong>
-            <span className="opacity-80">· {eventCount} live events received in this view</span>
+            <span className="opacity-80">· {eventCount} live updates received in this view</span>
             <span className="ml-auto inline-flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold"><span className="hidden sm:inline opacity-60">Source</span><span className="rounded-md border border-current/20 px-1.5 py-0.5">Controlled demo telemetry</span></span>
           </div>
         </div>
