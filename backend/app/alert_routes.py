@@ -23,17 +23,17 @@ def escalation_preview(principal:dict=Depends(authenticate_principal)):
     return {"items":[{"alert_id":item["id"],"patient_id":item["patient_id"],"severity":item["severity"],"status":item["status"],"title":item["title"]} for item in active]}
 
 @router.post("/{alert_id}/acknowledge")
-def acknowledge_alert(alert_id:int,payload:AlertAction,principal:dict=Depends(require_roles("admin","clinician"))):
+def acknowledge_alert(alert_id:int,payload:AlertAction,principal:dict=Depends(require_roles("admin","clinician","nurse"))):
     alert=get_alert(alert_id)
     if alert is None:raise HTTPException(status_code=404,detail="Alert not found")
     require_patient_access(alert["patient_id"],principal);return {"item":transition_alert(alert_id,"acknowledge",principal["sub"])}
 @router.post("/{alert_id}/assign")
-def assign_alert(alert_id:int,payload:AlertAction,principal:dict=Depends(require_roles("admin","clinician"))):
+def assign_alert(alert_id:int,payload:AlertAction,principal:dict=Depends(require_roles("admin","clinician","nurse"))):
     alert=get_alert(alert_id)
     if alert is None:raise HTTPException(status_code=404,detail="Alert not found")
     require_patient_access(alert["patient_id"],principal);return {"item":transition_alert(alert_id,"assign",principal["sub"],payload.actor)}
 @router.post("/{alert_id}/resolve")
-def resolve_alert(alert_id:int,payload:AlertAction,principal:dict=Depends(require_roles("admin","clinician"))):
+def resolve_alert(alert_id:int,payload:AlertAction,principal:dict=Depends(require_roles("admin","clinician","nurse"))):
     alert=get_alert(alert_id)
     if alert is None:raise HTTPException(status_code=404,detail="Alert not found")
     require_patient_access(alert["patient_id"],principal);return {"item":transition_alert(alert_id,"resolve",principal["sub"])}
