@@ -15,6 +15,7 @@ export function ExplainCard({ patientId }: { patientId: string }) {
     patientId,
     name: f.feature,
     contribution: f.direction === 'increases-risk' ? 1 : -1,
+    direction: f.direction,
     currentValue: String(f.observedValue),
     trend: 'Backend model contribution',
     description: f.explanation,
