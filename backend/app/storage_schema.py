@@ -3,7 +3,7 @@ from sqlalchemy import (
     Column, DateTime, Index, Integer, MetaData, String, Table, Text, func,
 )
 
-metadata = MetaData()
+from sqlalchemy import Boolean\n\nmetadata = MetaData()
 
 patients = Table(
     "patients", metadata,
