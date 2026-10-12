@@ -4,10 +4,9 @@ import { Link } from 'react-router-dom';
 import { useSimulation } from '../../store/useSimulation.ts';
 import { formatTimeAgo } from '../../utils/format.ts';
 import { useOptionalAuth } from '../../store/AuthContext.tsx';
-import { useLiveEvents } from '../../services/useLiveEvents.ts';
 
 export function Header({ title, subtitle }: { title: string; subtitle?: string }) {
-  const { alerts, lastRefresh, refresh } = useSimulation();
+  const { alerts, lastRefresh, refresh, streamStatus } = useSimulation();
   const auth = useOptionalAuth();
   const username = auth?.username ?? null;
   const role = auth?.role ?? null;
