@@ -75,9 +75,10 @@ export function PriorityTable({ patients, risks, latest, compact }: {
 
 export function TriageMatrix({ patients, risks }: { patients: Patient[]; risks: Record<string, RiskSignal> }) {
   const hiW = patients.filter((p) => risks[p.id] && risks[p.id].score !== null && (risks[p.id].score ?? -1) >= 65 && risks[p.id].trend === 'worsening');
-  const hiS = patients.filter((p) => risks[p.id] && (risks[p.id].score ?? -1) >= 65 && risks[p.id].trend !== 'worsening');
+  const hiS = patients.filter((p) => risks[p.id] && risks[p.id].score !== null && (risks[p.id].score ?? -1) >= 65 && risks[p.id].trend !== 'worsening');
   const loW = patients.filter((p) => risks[p.id] && risks[p.id].score !== null && (risks[p.id].score ?? -1) < 65 && risks[p.id].trend === 'worsening');
-  const loS = patients.filter((p) => risks[p.id] && (risks[p.id].score ?? -1) < 65 && risks[p.id].trend !== 'worsening');
+  const loS = patients.filter((p) => risks[p.id] && risks[p.id].score !== null && (risks[p.id].score ?? -1) < 65 && risks[p.id].trend !== 'worsening');
+  const unscored = patients.filter((p) => risks[p.id]?.score === null || risks[p.id]?.level === 'unavailable');
   const Cell = ({ title, sub, list, hot }: { title: string; sub: string; list: Patient[]; hot?: boolean }) => (
     <div className={`rounded-2xl border p-3.5 min-h-[118px] transition-all duration-200 hover:-translate-y-0.5 ${hot ? 'border-rose-300/70 bg-gradient-to-br from-rose-50 to-orange-50/60 dark:from-rose-950/40 dark:to-orange-950/20 dark:border-rose-900/60' : 'border-slate-200/70 dark:border-white/[0.07] bg-slate-50/60 dark:bg-white/[0.02] hover:border-teal-300/60'}`}>
       <p className={`text-[11px] font-extrabold uppercase tracking-[0.1em] ${hot ? 'text-rose-700 dark:text-rose-300' : 'text-slate-500'}`}>{title}</p>
@@ -105,6 +106,13 @@ export function TriageMatrix({ patients, risks }: { patients: Patient[]; risks: 
         <Cell title="Routine" sub="Low signal · stable" list={loS} />
         <Cell title="Monitor" sub="Low signal · worsening" list={loW} />
       </div>
+      {unscored.length > 0 && <div className="mt-3 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] bg-slate-50/60 dark:bg-white/[0.02] p-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div><p className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-slate-500">Telemetry only · no ML score</p><p className="text-[11px] text-slate-400">These patients have observations, but no clinically validated ML risk score is configured.</p></div>
+          <span className="text-xs font-bold tabular-nums text-slate-500">{unscored.length} patient{unscored.length === 1 ? '' : 's'}</span>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5">{unscored.map((p) => <Link key={p.id} to={`/patients/${p.id}`} className="text-[11px] font-bold px-2 py-1 rounded-lg border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-teal-400">{p.id}</Link>)}</div>
+      </div>}
       <p className="text-[11px] text-slate-400 mt-3">Decision-support visualization — review recommended. Bands are not clinically validated.</p>
     </div>
   );
