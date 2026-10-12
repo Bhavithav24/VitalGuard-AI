@@ -35,7 +35,7 @@ async def lifespan(_app: FastAPI):
     initialize_storage()
     await hub.start()
     demo_enabled = os.getenv("VITALGUARD_DEMO_TELEMETRY_ENABLED", "").strip().lower() == "true"
-    demo_loop_enabled = os.getenv("VITALGUARD_DEMO_TELEMETRY_LOOP_ENABLED", "").strip().lower() == "true"
+    demo_loop_enabled = True
 
     async def _demo_loop():
         while True:
@@ -50,12 +50,10 @@ async def lifespan(_app: FastAPI):
             await asyncio.sleep(60)
 
     demo_task = asyncio.create_task(_demo_loop()) if demo_enabled and demo_loop_enabled else None
-    if demo_enabled and demo_loop_enabled:
+    if demo_enabled:
         logger.warning("Controlled demo telemetry loop enabled")
-    elif demo_enabled:
-        logger.info("Controlled demo telemetry loop disabled; scheduled runner is expected to emit ticks")
     else:
-        logger.info("Controlled demo telemetry disabled")
+        logger.info("Controlled demo telemetry loop disabled")
     try:
         yield
     finally:
