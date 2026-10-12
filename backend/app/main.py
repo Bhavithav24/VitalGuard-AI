@@ -190,7 +190,7 @@ def model_validation_diagnostics(principal: dict = Depends(authenticate_principa
     return evaluate_synthetic_calibration_and_subgroups()
 
 @app.post("/api/v1/risk/predict", response_model=RiskPrediction)
-async def predict(payload: VitalInput, principal: dict = Depends(require_roles("admin", "operator"))):
+async def predict(payload: VitalInput, principal: dict = Depends(require_roles("admin", "clinician"))):
     require_patient_access(payload.patient_id, principal)
     values = payload.model_dump(exclude={"patient_id"})
     probability = predict_probability(values)
