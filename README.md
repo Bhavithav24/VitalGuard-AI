@@ -1,170 +1,170 @@
-# VitalGuard AI — Patient Deterioration Early-Warning Prototype
+# VitalGuard AI — Patient Monitoring Prototype
 
-> **DEMO ONLY · SYNTHETIC DATA · NOT FOR CLINICAL USE**
+> **DEMO ONLY · CONTROLLED REAL-TIME DEMO TELEMETRY · NOT FOR CLINICAL USE**
 >
-> VitalGuard AI is a software prototype for exploring patient-observation monitoring, risk-signal visualisation and alert workflows. The included patients and observations are synthetic. The current risk model is trained on generated data and is not clinically validated.
+> VitalGuard AI is a software prototype for patient-observation monitoring, review workflows, NEWS2 reference scoring and risk-signal visualisation. The deployed demonstration uses a controlled backend telemetry source that creates demo patient records and continuously emits monitor-style observations through the same persistence and WebSocket path used by authorized ingestion. It is not a clinical device feed and must not be used for patient care.
+
+## What is currently implemented
+
+- React + TypeScript + Vite frontend with Dashboard, Patients, Alerts, Analytics and Settings.
+- FastAPI backend with authenticated APIs and server-enforced RBAC for **admin**, **clinician** and **nurse** roles.
+- PostgreSQL/SQLite storage adapter with ordered migrations, patient CRUD, observation provenance and idempotent ingestion.
+- Protected WebSocket live-event delivery with ticket-based authentication, reconnect handling and optional shared Redis/Valkey Pub/Sub.
+- Controlled real-time demo telemetry for four demo patients. The telemetry is deterministic, persisted by the backend and emitted once per minute; it is intentionally presented as a demo source rather than a real clinical device.
+- Observation data-quality monitoring, backend observation history, patient timelines, descriptive trends and alert lifecycle/audit workflows.
+- NEWS2 parameter scoring reference implementation with explicit completeness and safety checks.
+- Historical replay can use the included research-only model. Live observations fail closed to **ML unavailable** because no clinically validated ML model is configured.
+- Settings includes the research model/evaluation workbench, NEWS2 calculator and live telemetry source status. Admins can manually trigger a demo telemetry tick.
+- No browser-generated random vital signs, no frontend clinical source of truth and no restored "Start Simulation" workflow.
 
 ## Requirements
 
-- Node.js 20 or newer (Node.js 22 LTS recommended)
-- npm 10 or newer
-- Python 3.11+ recommended for the FastAPI backend
+- Node.js 20+ (Node.js 22 recommended)
+- npm 10+
+- Python 3.11+ (3.12 used by CI)
 
 ## Quick start
 
 Frontend:
+
 ```bash
 npm ci
 cp .env.example .env
 npm run dev
 ```
 
-Backend (from the repository root):
+Backend:
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements.txt
-cd backend
-uvicorn app.main:app --reload
+uvicorn app.main:app --app-dir backend --reload
 ```
 
-The frontend normally runs at `http://localhost:5173`; the backend at `http://localhost:8000`. API docs are at `http://localhost:8000/docs`.
+The frontend normally runs at `http://localhost:5173`; the backend at `http://localhost:8000`.
 
-## Verification commands
+## Verification
 
-Run from the project root:
 ```bash
 npm run lint
 npm test
 npm run build
+PYTHONPATH=backend pytest backend/tests -q
 ```
 
-Run backend tests from `backend/`:
-```bash
-pytest -q
-```
-
-Only describe a command as passing after it has been run successfully against the current source.
+Only describe a command as passing after it has actually completed successfully against the current source.
 
 ## Environment configuration
 
-Copy `.env.example` to `.env` for local development. Vite variables prefixed with `VITE_` are bundled into browser code, so never store secrets in them.
-
 | Variable | Purpose |
 | --- | --- |
-| `VITE_DEMO_MODE` | Starts in synthetic demo mode unless explicitly set to `false`. |
-| `VITE_API_BASE_URL` | Optional FastAPI base URL; local default is normally `http://localhost:8000`. |
+| `VITE_API_BASE_URL` | Optional FastAPI base URL; production points to the deployed backend. |
 | `VITE_APP_VERSION` | Frontend version label. |
-| `DATABASE_URL` | Optional backend database URL; SQLite is used by default. |
-| `VITALGUARD_DB_PATH` | Optional local SQLite file path for tests/development. |
-| `CORS_ORIGINS` | Comma-separated allowed frontend origins. |
+| `DATABASE_URL` | Backend PostgreSQL connection string. |
+| `VITALGUARD_DB_PATH` | Local SQLite path used for development/tests when PostgreSQL is not configured. |
+| `CORS_ORIGINS` | Allowed frontend origins. |
+| `VITALGUARD_DEMO_TELEMETRY_ENABLED` | Enables the controlled deployed demo telemetry loop. Keep disabled for environments that require an external authorized source only. |
+| `VITALGUARD_LIVE_SOURCE_TOKEN` | Server-side token for authorized external live ingestion. |
+| `REDIS_URL` | Optional Redis/Valkey Pub/Sub transport for multi-instance WebSocket fan-out. |
 
-## Current implementation
+Secrets belong only in backend/Render environment settings.
 
-- React, TypeScript, Vite and Tailwind frontend with dashboard, patient directory/detail, alerts, analytics and settings.
-- Existing synthetic patient records, demo simulation controls and local UI persistence.
-- FastAPI synthetic risk endpoint, model metadata, deterministic holdout evaluation, coefficient-contribution explanation, bounded observation history and observation quality endpoint.
-- SQLAlchemy storage adapter supports local SQLite and PostgreSQL when `DATABASE_URL` is configured. A hosted PostgreSQL instance is not yet confirmed in the live deployment.
-- WebSocket event delivery for persisted observations and alerts, with a reconnecting frontend client.
-- Persistent demo alert lifecycle (open, acknowledged, resolved) with audit trail.
-- Dashboard includes backend alert operations, observation quality, and persisted prediction history. Patient detail includes backend observation/alert/audit timeline and descriptive trends. Patient cohort, vital charts and analytics still use local synthetic fixtures.
-- Interactive model evaluation and coefficient-contribution workbench in Settings.
-- Source-documented NEWS2 parameter scoring demo endpoint (`POST /api/v1/scores/news2`) and Settings calculator; this is not a clinically validated or approved implementation.
-- Unified persisted patient timeline (`GET /api/v1/patients/{patient_id}/timeline`) and descriptive trend endpoint (`GET /api/v1/observations/trends?patient_id=...`).
-- Deterministic simulator endpoint for stable, worsening, and recovering fictional observation scenarios.
+## Real-time demo telemetry
 
-### Phase 1 API: synthetic observation ingestion
+The deployed demonstration has a controlled source named `bedside-monitor-demo`. It maintains four demo patients and emits a new observation every minute.
 
-Endpoint:
-`POST /api/v1/demo/observations`
+The flow is:
 
-Example request:
-```json
-{
-  "patient_id": "DEMO-LIVE-001",
-  "scenario": "worsening",
-  "step": 3
-}
+```text
+controlled demo source
+        ↓
+validated ingestion
+        ↓
+PostgreSQL persistence
+        ↓
+NEWS2 reference calculation
+        ↓
+WebSocket event
+        ↓
+frontend dashboard / patient history / quality views
 ```
 
-Supported scenarios: `stable`, `worsening`, `recovering`. Step must be between 0 and 1000. The endpoint generates one deterministic observation for the requested scenario and step, runs the current synthetic risk model, and persists the resulting observation/prediction using the configured storage adapter.
+The observations are not browser-generated and do not come from a real bedside device. They are deliberately deterministic and bounded so that the demo is repeatable and does not pretend to have a clinical device connection.
 
-Example local request:
-```bash
-curl -X POST http://localhost:8000/api/v1/demo/observations \
-  -H 'Content-Type: application/json' \
-  -d '{"patient_id":"DEMO-LIVE-001","scenario":"worsening","step":3}'
+The admin-only Settings action **Emit telemetry now** uses the same backend path and is useful for demonstrating the real-time update flow without waiting for the next minute.
+
+## Risk and model boundary
+
+The included research model is a StandardScaler + LogisticRegression classifier trained on generated research data. It is **not XGBoost, not clinically validated and not a clinical risk model**.
+
+Therefore:
+
+- historical replay may display the research model with an explicit research-only disclaimer;
+- live/demo telemetry stores `risk_score=null` and displays **ML unavailable**;
+- no live clinical risk score is fabricated just to make the dashboard look populated;
+- NEWS2 is displayed separately when complete inputs are available and is still a reference implementation requiring local clinical verification;
+- SHAP/clinical explainability is not claimed when a validated live model is unavailable.
+
+## Patient and alert workflows
+
+Protected patient APIs support creation, listing, detail, update and deactivation while preserving historical observations.
+
+Alert lifecycle is server-authoritative:
+
+```text
+open → acknowledged → assigned → resolved
 ```
 
-History can be inspected at:
-`GET /api/v1/observations?patient_id=DEMO-LIVE-001`
+Each transition is audited. Patient scope and role permissions are enforced by the backend.
 
-This is a one-observation-per-request simulator, not a continuous device feed. Each request creates a new observation; requests are not idempotent. The backend broadcasts saved observations and alerts over `/api/v1/live`, and the dashboard includes backend alert, history, timeline and trend views. Not all patient cards/charts are API-backed. Durable hosted PostgreSQL configuration remains outstanding.
+## Deployment
 
-## Important limitations
+Current deployed services for the Bhavithav24 project:
 
-- Patient directory, vital charts, cohort analytics and some local alert cards still use local synthetic fixtures; backend history and alert operations are separate views.
-- The model is a StandardScaler + LogisticRegression classifier trained on generated synthetic observations and heuristic labels. Its output is a demo signal, not a validated probability of clinical deterioration.
-- Model evaluation metrics describe agreement with synthetic heuristic labels only. Coefficient contributions are not SHAP explanations or causal attributions.
-- WebSocket fan-out is in-process and designed for a single backend instance. Hosted PostgreSQL, identity/role controls, and production operational safeguards remain deployment work.
-- The NEWS2 scoring endpoint follows parameter bands from the RCP chart for demonstration, but the implementation is not clinically validated or approved. The existing local NEWS2-like display also remains a separate synthetic fixture.
-- No clinical performance, safety, regulatory or real-device integration is claimed.
-- Do not use real patient data or use this prototype to diagnose, triage, or make treatment decisions.
+- Frontend: `vitalguard-ai-bhavithav.onrender.com`
+- Backend: `vitalguard-risk-api-bhavithav.onrender.com`
+- PostgreSQL: Render-managed project database
+
+The deployment is a demonstration/staging environment. Production clinical use remains blocked until real authorized identity, real device/data integration, clinical validation, privacy/security/compliance review, durable backups and appropriate hosting are completed and verified.
 
 ## Project layout
 
 ```text
 backend/app/
-  main.py              FastAPI application
-  model.py             Synthetic demo classifier
-  schemas.py           Validated API request/response schemas
-  simulator.py         Deterministic fictional observation scenarios
-  simulator_routes.py  Demo observation ingestion endpoint
-  timeline_routes.py   Persisted patient timeline
-  trend_routes.py      Descriptive observation trends
-  news2.py             NEWS2 parameter scoring demonstration
-  storage.py           SQLite/PostgreSQL storage adapter
-backend/tests/
-  test_api.py
-  test_simulator.py
+  main.py                 FastAPI application and lifecycle
+  auth.py                 Authentication, roles and patient scope
+  patient_routes.py       Patient CRUD
+  ingestion_routes.py     Validated observation ingestion
+  demo_telemetry.py       Controlled real-time demo source
+  live_events.py          Authenticated WebSocket fan-out
+  storage.py              SQLite/PostgreSQL storage adapter
+  migrations.py           Ordered database migrations
+  alert_service.py        Alert lifecycle and audit persistence
+  alert_routes.py         Alert API
+  news2.py                NEWS2 reference scoring
+  model.py                Research-only synthetic model
+  timeline_routes.py      Patient timeline API
+  trend_routes.py         Descriptive trend API
+
 src/
-  data/                Synthetic frontend fixtures
-  pages/               Dashboard and feature pages
-  services/            API and demo data services
-  store/               Frontend state
-  test/                Frontend tests
-docs/
-  REALTIME_DEMO_ROADMAP.md
+  pages/                  Dashboard, Patients, Alerts, Analytics, Settings
+  components/             UI, charts, monitoring and workflow panels
+  services/               API, authentication and WebSocket clients
+  store/                  Backend-authoritative application state
+
+backend/tests/
+  patient, auth/RBAC, ingestion, WebSocket, alert, migration,
+  data-quality, NEWS2, resilience and persistence coverage
 ```
 
-## Database configuration
+## Release gates still requiring verification
 
-- Local development defaults to SQLite.
-- Hosted deployments can set `DATABASE_URL` to a PostgreSQL connection string. The adapter normalizes common `postgres://` and `postgresql://` URLs to psycopg 3.
-- Configure credentials only in the backend service's private environment settings; do not commit them.
-- Provision the hosted database separately. Existing SQLite records are not automatically migrated.
-- This storage adapter currently supports synthetic demonstration data only; it is not a production patient-record system.
+The engineering implementation is substantially complete, but these are **verification gates**, not reasons to fake completion:
 
-## Live API smoke test
+1. GitHub Actions CI/E2E must finish successfully for the latest commit.
+2. Render must finish the latest backend/frontend deployments.
+3. Hosted PostgreSQL persistence must be verified directly; the Render database currently requires the appropriate access/allowlist path for an external direct query.
+4. Final browser verification should confirm login, four demo patients, fresh telemetry, WebSocket updates, patient detail/history, alert lifecycle and responsive UI.
 
-Run `npm run smoke:api` to check health, model metadata, frontend CORS preflight, synthetic prediction and persistence, model evaluation, coefficient contributions, NEWS2 scoring/Scale 2 guard, data quality, alert acknowledgement/resolution and audit trail. This writes fictional records to the configured demo database.
-
-- Workflow: `.github/workflows/live-api-smoke.yml`
-- Script: `scripts/smoke-test.mjs`
-- Run via GitHub Actions → Live API smoke test → Run workflow.
-- The workflow creates synthetic demo records; never send real patient data.
-
-## Delivery plan and current project phase
-
-The repository has two phase histories: the legacy feature roadmap below documents already-built demo capabilities, while the sequential production-readiness plan defines the work to do next. Do not confuse legacy feature phase numbers with the new delivery phases.
-
-- [Master delivery plan](docs/MASTER_DELIVERY_PLAN.md) — full sequential phases 0–20 and release gates.
-- [Phase 0 audit](docs/PHASE_0_AUDIT.md) — current repository, Render baseline and gaps.
-- [Phase 1 requirements](docs/PHASE_1_REQUIREMENTS.md) — product, data, security, model and safety requirements.
-- [Phase 2 architecture](docs/PHASE_2_ARCHITECTURE.md) — deployed topology, modules and trust boundaries.
-- [Phase 2 API contracts](docs/PHASE_2_API_CONTRACTS.md) — current endpoint inventory and proposed API semantics.
-- [Phase 2 data model](docs/PHASE_2_DATA_MODEL.md) — current storage and target observation lifecycle.
-- [Legacy demo feature roadmap](docs/REALTIME_DEMO_ROADMAP.md) — delivered prototype capabilities and limitations.
-- [Render release runbook](docs/RENDER_RELEASE_RUNBOOK.md) — service branches and deployment verification.
-
-## Production-readiness phases\n\nThe project now includes a production-readiness foundation in addition to the synthetic demo:\n\n1. **Authorization baseline** — authenticated tokens now carry an explicit role (`admin`, `operator`, or `viewer`) and protected dependencies can enforce role permissions. Login attempts are rate-limited in-process.\n2. **Durable data foundation** — the API supports PostgreSQL through `DATABASE_URL`, ordered migrations, provenance records and idempotent ingestion. A Render PostgreSQL instance has been provisioned for this project.\n3. **Shared real-time transport** — WebSocket events can use Render Key Value/Valkey Pub/Sub through `REDIS_URL`, allowing multiple API instances to fan out events. REST history remains the recovery mechanism because Pub/Sub itself does not replay missed events.\n4. **Validated ingestion** — batch ingestion validates timestamps, units, synthetic source identity, duplicate event IDs and payload conflicts before persistence.\n5. **Observability/reliability** — authenticated readiness and bounded process metrics are exposed; baseline security headers, request IDs, reconnect behavior and graceful WebSocket cleanup are included.\n6. **Automated verification** — backend tests, frontend tests/builds and GitHub workflows are used as release gates.\n7. **Production/clinical gate** — the application remains explicitly synthetic-only. Real patient/device integration, clinical validation, privacy/compliance review, durable backups and paid production infrastructure must be completed before real clinical use.\n\n### Important hosting limitation\n\nThe current Render Postgres and Key Value resources were provisioned on **Free** plans for testing/staging. Render documents that Free Postgres expires after 30 days and has no backups, while Free Key Value is in-memory only; Free web services can also spin down after inactivity. These limitations mean the current deployment is **not a durable production environment**. Upgrade the Render resources before a real production launch.\n\nCurrent delivery phase: **production-readiness foundation implemented; production launch gate remains blocked by hosting durability, real identity/authorization lifecycle, real data/device integration, security/compliance review, and clinical validation.**
+Until those gates are confirmed, the project should be described as a deployed demonstration/staging prototype rather than a production clinical system.
