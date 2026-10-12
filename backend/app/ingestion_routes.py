@@ -152,4 +152,4 @@ async def ingest_batch(batch: IngestionBatch, principal: dict = Depends(require_
 from .patient_routes import router as patient_router
 router = APIRouter()
 router.include_router(ingestion_router)
-router.include_router(patient_router)\n
+router.include_router(patient_router)
