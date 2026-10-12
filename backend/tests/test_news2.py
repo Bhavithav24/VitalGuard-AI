@@ -73,12 +73,20 @@ def test_api_rejects_scale_2_without_authorization():
     assert response.status_code == 422
 
 
-def test_api_returns_total_and_demo_disclaimer():
+def test_missing_parameters_are_explicitly_reported():
+    result = score_news2(baseline(spo2=None, heart_rate=None))
+    assert result["complete"] is False
+    assert "spo2" in result["missing_parameters"]
+    assert "heart_rate" in result["missing_parameters"]
+
+
+def test_api_returns_reference_status():
     with TestClient(app) as client:
         authenticate_test_client(client)
         response = client.post("/api/v1/scores/news2", json=baseline())
     assert response.status_code == 200
     body = response.json()
     assert body["total_score"] == 0
-    assert body["demo_only"] is True
+    assert body["demo_only"] is False
     assert body["clinically_validated_implementation"] is False
+    assert body["implementation_status"] == "reference_implementation_unvalidated"
