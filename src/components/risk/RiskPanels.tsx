@@ -31,7 +31,7 @@ export function RiskPanel({ risk, delta }: { risk: RiskSignal; delta?: number })
           <p className={`text-xs font-bold mt-1 ${trend.cls}`}>{trend.arrow} {trend.label}{delta !== undefined && delta !== 0 ? ` · ${delta > 0 ? '+' : ''}${delta} in window` : ''}</p>
           <p className="text-[11px] text-slate-400 mt-1 tabular-nums">Updated {formatTimeAgo(risk.updatedAt)}</p>
           <p className="mt-2.5 inline-block text-[10px] font-bold tracking-[0.08em] px-2 py-1 rounded-md bg-slate-900/[0.04] text-slate-500 border border-slate-200/80 dark:bg-white/[0.06] dark:text-slate-300 dark:border-white/10">
-            PROTOTYPE SIGNAL · REVIEW RECOMMENDED
+            RESEARCH MODEL · REVIEW RECOMMENDED
           </p>
         </div>
       </div>
