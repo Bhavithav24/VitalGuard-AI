@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 import os
+import asyncio
 import uuid
 import threading
 import time
@@ -23,15 +24,32 @@ from .live_events import hub
 from .storage import database_health, initialize_storage, list_observations, save_observation
 from .auth import router as auth_router, authenticate_principal, require_roles, require_patient_access, patient_scope_prefixes, _consume_ws_ticket, validate_access_token
 from .ingestion_routes import router as ingestion_router
+from .demo_telemetry import router as demo_router, emit_demo_tick
 from .demo_telemetry import router as demo_router
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     initialize_storage()
     await hub.start()
+    demo_task = None
+    if os.getenv("VITALGUARD_DEMO_TELEMETRY_ENABLED", "").strip().lower() == "true":
+        async def _demo_loop():
+            while True:
+                try:
+                    await emit_demo_tick()
+                except Exception:
+                    pass
+                await asyncio.sleep(60)
+        demo_task = asyncio.create_task(_demo_loop())
     try:
         yield
     finally:
+        if demo_task:
+            demo_task.cancel()
+            try:
+                await demo_task
+            except asyncio.CancelledError:
+                pass
         await hub.stop()
 
 app = FastAPI(title="VitalGuard AI Risk Engine", version="0.8.0",
