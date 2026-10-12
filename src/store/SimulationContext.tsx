@@ -8,7 +8,8 @@ function build(ps:any[],os:any[],as:any[]){
   const patients:Patient[]=ps.map(p=>({id:p.patient_id,age:Number(p.age??0),sex:p.sex==='F'?'F':p.sex==='M'?'M':'U',ward:p.unit||'Unassigned',bed:p.bed||'—',updatedAt:p.updated_at||p.created_at||new Date().toISOString()}));
   const histories:Record<string,VitalReading[]>={},latest:Record<string,VitalReading>={},risks:Record<string,RiskSignal>={},groups:Record<string,any[]>={};
   patients.forEach(p=>histories[p.id]=[]);
-  os.forEach(o=>(groups[o.patient_id]??=[]).push(o));
+  const patientIds=new Set(patients.map(p=>p.id));
+  os.filter(o=>patientIds.has(o.patient_id)).forEach(o=>(groups[o.patient_id]??=[]).push(o));
   patients.forEach(p=>{
     const rows=(groups[p.id]??[]).slice().sort((a,b)=>new Date(a.observed_at||a.created_at).getTime()-new Date(b.observed_at||b.created_at).getTime());
     const vs=rows.map(o=>({patientId:p.id,timestamp:o.observed_at||o.created_at,heartRate:Number(o.inputs?.heart_rate),spo2:Number(o.inputs?.spo2),systolicBp:Number(o.inputs?.systolic_bp),diastolicBp:Number(o.inputs?.diastolic_bp),temperature:Number(o.inputs?.temperature),respiratoryRate:Number(o.inputs?.respiratory_rate)})).filter(v=>Number.isFinite(v.heartRate));
@@ -37,7 +38,8 @@ function build(ps:any[],os:any[],as:any[]){
       factors:Array.isArray(lastRow.prediction?.factors)?lastRow.prediction.factors.map((f:any)=>({feature:String(f.feature||'unknown'),observedValue:Number(f.observed_value??0),direction:f.direction==='decreases-risk'?'decreases-risk':'increases-risk',explanation:String(f.explanation||'')})):[]
     };
   });
-  return {patients,latest,risks,histories,alerts:as.map(a=>({id:String(a.id),patientId:a.patient_id,severity:a.severity||'info',title:a.title,description:a.details?.description||a.details?.message||a.title,contributors:Array.isArray(a.details?.contributors)?a.details.contributors:[],status:a.status,createdAt:a.created_at})) as AlertItem[]};
+  const alerts=as.filter(a=>patientIds.has(a.patient_id)).map(a=>({id:String(a.id),patientId:a.patient_id,severity:a.severity||'info',title:a.title,description:a.details?.description||a.details?.message||a.title,contributors:Array.isArray(a.details?.contributors)?a.details.contributors:[],status:a.status,createdAt:a.created_at})) as AlertItem[];
+  return {patients,latest,risks,histories,alerts};
 }
 export function SimulationProvider({children}:{children:ReactNode}){
   const [state,setState]=useState(()=>({patients:[],latest:{},risks:{},histories:{},alerts:[]} as ReturnType<typeof build>));
