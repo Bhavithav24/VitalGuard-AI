@@ -4,6 +4,7 @@ import asyncio
 import uuid
 import threading
 import time
+import logging
 from collections import Counter
 from fastapi import FastAPI, Query, WebSocket, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,20 +28,25 @@ from .ingestion_routes import router as ingestion_router
 from .patient_routes import router as patient_router
 from .demo_telemetry import router as demo_router, emit_demo_tick
 
+logger = logging.getLogger(__name__)
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     initialize_storage()
     await hub.start()
     demo_task = None
-    if os.getenv("VITALGUARD_DEMO_TELEMETRY_ENABLED", "").strip().lower() == "true":
+    demo_enabled = os.getenv("VITALGUARD_DEMO_TELEMETRY_ENABLED", "").strip().lower() == "true"
+    if demo_enabled:
         async def _demo_loop():
             while True:
                 try:
-                    await emit_demo_tick()
+                    result = await emit_demo_tick()
+                    logger.info("Controlled demo telemetry tick: %s", result)
                 except Exception:
-                    pass
+                    logger.exception("Controlled demo telemetry tick failed")
                 await asyncio.sleep(60)
         demo_task = asyncio.create_task(_demo_loop())
+        logger.info("Controlled demo telemetry loop enabled")
     try:
         yield
     finally:
@@ -146,6 +152,7 @@ def operational_readiness(principal: dict = Depends(authenticate_principal)):
             "model_loaded": True,
             "validated_ml_available": False,
             "websocket_transport": hub.transport,
+            "demo_telemetry_enabled": demo_enabled,
         },
         "database_backend": database.get("backend", "unknown"),
         "model_version": MODEL_VERSION,
