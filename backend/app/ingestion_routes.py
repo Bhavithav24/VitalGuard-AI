@@ -45,22 +45,52 @@ async def ingest_batch(batch:IngestionBatch,principal:dict=Depends(require_roles
             results.append({"index":index,"status":"rejected","errors":[{"field":"source_system","message":"Historical replay must declare an approved replay source"}]});continue
         if item.source_mode=="live" and (not configured or not x_source_token or not hmac.compare_digest(x_source_token,configured)):
             results.append({"index":index,"status":"rejected","errors":[{"field":"source_mode","message":"Authorized live source is not configured"}]});continue
-        values=item.observation.model_dump(exclude={"patient_id"}, exclude_none=True);model_values={name:values[name] for name in ("age","heart_rate","spo2","systolic_bp","diastolic_bp","temperature","respiratory_rate")};probability=predict_probability(model_values);score=round(probability*100)
+        values=item.observation.model_dump(exclude={"patient_id"}, exclude_none=True)
+        model_values={name:values[name] for name in ("age","heart_rate","spo2","systolic_bp","diastolic_bp","temperature","respiratory_rate")}
         news2_result=None
         if values.get("consciousness") is not None:
             from .news2 import score_news2
             news2_result=score_news2(values)
-        prediction=RiskPrediction(patient_id=item.observation.patient_id,risk_score=score,risk_level=risk_level(score),model_probability=round(probability,4),factors=explain(model_values),model_version=MODEL_VERSION,news2=(news2_result["total_score"] if news2_result and news2_result["complete"] else None),demo_only=True)
+
+        # The synthetic model is permitted only for explicit historical replay.
+        if item.source_mode=="historical_replay":
+            probability=predict_probability(model_values)
+            score=round(probability*100)
+            prediction=RiskPrediction(
+                patient_id=item.observation.patient_id,
+                risk_score=score,
+                risk_level=risk_level(score),
+                model_probability=round(probability,4),
+                factors=explain(model_values),
+                model_version=MODEL_VERSION,
+                news2=(news2_result["total_score"] if news2_result and news2_result["complete"] else None),
+                demo_only=True,
+                ml_available=True,
+                disclaimer="Historical replay research signal only; not clinically validated and not for live patient decisions.",
+            )
+        else:
+            prediction=RiskPrediction(
+                patient_id=item.observation.patient_id,
+                risk_score=None,
+                risk_level="unavailable",
+                model_probability=None,
+                factors=[],
+                model_version="unavailable",
+                news2=(news2_result["total_score"] if news2_result and news2_result["complete"] else None),
+                demo_only=False,
+                ml_available=False,
+                disclaimer="No clinically validated ML model is configured for live observations. NEWS2 is shown separately when complete clinical inputs are supplied.",
+            )
         payload_hash=hashlib.sha256(json.dumps(item.model_dump(mode="json"),sort_keys=True,separators=(",",":")).encode()).hexdigest()
         persisted=persist_ingested_observation(source_system=item.source_system,source_mode=item.source_mode,source_event_id=item.source_event_id,patient_id=item.observation.patient_id,observed_at=item.observed_at,units=item.units.model_dump(),payload_hash=payload_hash,inputs=values,prediction=prediction.model_dump())
         results.append({"index":index,**persisted,"source_system":item.source_system,"source_mode":item.source_mode,"source_event_id":item.source_event_id,"patient_id":item.observation.patient_id,"observed_at":item.observed_at.isoformat()})
         if persisted["status"]=="accepted":
             response=prediction.model_copy(update={"observation_id":persisted["observation_id"],"created_at":item.observed_at.isoformat()})
             await hub.broadcast({"type":"observation.created","event_id":persisted["observation_id"],"patient_id":item.observation.patient_id,"observed_at":item.observed_at.isoformat(),"observation":values,"prediction":response.model_dump(),"source_system":item.source_system,"source_mode":item.source_mode})
-            if score >= 65:
-                alert=create_alert(patient_id=item.observation.patient_id,event_key=f"observation:{persisted['observation_id']}:elevated-risk",severity="critical" if response.risk_level=="critical" else "high",title=f"{response.risk_level.title()} risk signal",details={"observation_id":persisted["observation_id"],"risk_score":score,"risk_level":response.risk_level,"source_mode":item.source_mode})
+            if item.source_mode=="historical_replay" and response.risk_score is not None and response.risk_score >= 65:
+                alert=create_alert(patient_id=item.observation.patient_id,event_key=f"observation:{persisted['observation_id']}:elevated-risk",severity="critical" if response.risk_level=="critical" else "high",title=f"{response.risk_level.title()} research risk signal",details={"observation_id":persisted["observation_id"],"risk_score":response.risk_score,"risk_level":response.risk_level,"source_mode":item.source_mode,"demo_only":True})
                 if alert:
-                    await hub.broadcast({"type":"alert.created","event_id":alert["id"],"patient_id":item.observation.patient_id,"alert":alert,"source_mode":item.source_mode})
+                    await hub.broadcast({"type":"alert.created","event_id":alert["id"],"patient_id":item.observation.patient_id,"alert":alert,"source_mode":item.source_mode,"demo_only":True})
     accepted=sum(x["status"]=="accepted" for x in results);duplicates=sum(x["status"]=="duplicate" for x in results);conflicts=sum(x["status"]=="conflict" for x in results)
     return {"items":results,"count":len(results),"accepted":accepted,"duplicates":duplicates,"conflicts":conflicts,"rejected":len(results)-accepted-duplicates}
 from .patient_routes import router as patient_router
