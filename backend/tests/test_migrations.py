@@ -37,7 +37,7 @@ def test_legacy_database_upgrades_idempotently(tmp_path):
         migrate(engine)
         with engine.connect() as connection:
             versions = connection.execute(select(MIGRATIONS.c.version).order_by(MIGRATIONS.c.version)).scalars().all()
-        assert versions == list(range(1, 7))
+        assert versions == list(range(1, 8))
         index_names = {item["name"] for item in inspect(engine).get_indexes("alerts")}
         assert "idx_alerts_patient_status_created" in index_names
     finally:
