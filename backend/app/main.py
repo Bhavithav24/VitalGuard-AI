@@ -229,9 +229,14 @@ def observation_history(patient_id: str | None = Query(default=None, min_length=
         "demo_only": True, "disclaimer": "Synthetic demonstration records only; not for clinical use."}
 
 @app.get("/api/v1/observations/quality")
-def observation_quality(patient_id: str = Query(min_length=1, max_length=64),
+def observation_quality(patient_id: str | None = Query(default=None, min_length=1, max_length=64),
     stale_after_seconds: int = Query(default=300, ge=30, le=86400),
     limit: int = Query(default=100, ge=1, le=100), principal: dict = Depends(authenticate_principal)):
-    require_patient_access(patient_id, principal)
-    records = list_observations(patient_id=patient_id, limit=limit)
+    if patient_id:
+        require_patient_access(patient_id, principal)
+    records = list_observations(
+        patient_id=patient_id,
+        limit=limit,
+        patient_prefixes=None if patient_id else patient_scope_prefixes(principal),
+    )
     return assess_observations(records, stale_after_seconds=stale_after_seconds)
