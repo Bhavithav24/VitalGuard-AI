@@ -15,7 +15,7 @@ vi.mock('../services/api.ts',()=>({api:{
  listObservations:vi.fn().mockResolvedValue({items:[],count:0}),
  listAlerts:vi.fn().mockResolvedValue({items:[],count:0}),
  health:vi.fn().mockResolvedValue({status:'ok',model_version:'test',demo_only:true}),
- readiness:vi.fn().mockResolvedValue({status:'ready',checks:{api:'ok',database:'ok',operator_auth_configured:true,model_loaded:true,websocket_transport:'memory'},database_backend:'sqlite',model_version:'test',demo_only:true,clinically_validated:false,notes:[]}),
+ readiness:vi.fn().mockResolvedValue({status:'ready',checks:{api:'ok',database:'ok',auth_configured:true,model_loaded:true,websocket_transport:'memory'},database_backend:'sqlite',model_version:'test',demo_only:true,clinically_validated:false,notes:[]}),
  acknowledgeAlert:vi.fn().mockResolvedValue({}),
  assignAlert:vi.fn().mockResolvedValue({}),
  resolveAlert:vi.fn().mockResolvedValue({}),
