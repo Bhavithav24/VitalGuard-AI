@@ -30,7 +30,7 @@ export function Shell({ title, subtitle, children }: { title: string; subtitle?:
         <footer className="px-6 md:px-8 pb-6 flex flex-wrap items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500">
           <span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />VitalGuard AI · clinical intelligence prototype</span>
           <span aria-hidden className="opacity-50">·</span>
-          <span>No live clinical device feed is connected; observations are accepted only from authorized sources.</span>
+          <span>Observations are accepted only from authorized backend sources; the deployed demo uses a controlled bedside-monitor telemetry source.</span>
         </footer>
       </div>
       <Toasts />
