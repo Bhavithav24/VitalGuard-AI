@@ -34,7 +34,7 @@ export function HeroPatient({ hero, vitals, patient }: { hero: RiskSignal; vital
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
           <p className="font-display text-2xl sm:text-[28px] font-extrabold tracking-tight">{patient.id}</p>
           <p className="text-sm text-slate-300 inline-flex items-center gap-1.5"><MapPin size={14} aria-hidden className="text-teal-300" />{patient.ward} · Bed {patient.bed} · Age {patient.age}</p>
-          <RiskBadge level={hero.level} score={hero.score} />
+          <RiskBadge level={hero.level} score={hero.score ?? undefined} />
         </div>
         <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5">
           {[
@@ -63,7 +63,7 @@ export function HeroPatient({ hero, vitals, patient }: { hero: RiskSignal; vital
             <p className="eyebrow !text-[10px] !text-slate-400">Trajectory summary</p>
             <p className="metric text-3xl mt-1 text-white">{deltaLabel} <span className="text-sm font-bold text-slate-400">pts</span></p>
             <p className="text-xs mt-1 text-slate-300">Direction: <strong className="capitalize">{hero.trend}</strong> · Window: 2h</p>
-            <p className={`text-xs mt-2 font-bold ${RISK_STYLES[hero.level].text} brightness-150`}>{hero.score >= 65 ? "Review recommended." : "Continue monitoring."}</p>
+            <p className={`text-xs mt-2 font-bold ${RISK_STYLES[hero.level].text} brightness-150`}>{(hero.score ?? 0) >= 65 ? "Review recommended." : "Continue monitoring."}</p>
           </div>
         </div>
       </div>
