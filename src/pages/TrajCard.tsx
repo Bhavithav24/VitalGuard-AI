@@ -11,6 +11,15 @@ export function TrajCard({ patientId }: { patientId: string }) {
   if (!r) return null;
   const delta = riskDelta(r);
   const s = RISK_STYLES[r.level];
+  if (!r.mlAvailable || r.level === 'unavailable' || r.trajectory.length === 0) {
+    return (
+      <div className="mt-4">
+        <SectionCard eyebrow="Trajectory" title="Risk trajectory" hint="Unavailable without a validated ML model" label="Risk trajectory">
+          <p className="text-sm text-slate-500">No ML trajectory is displayed because live ML risk is unavailable.</p>
+        </SectionCard>
+      </div>
+    );
+  }
   return (
     <div className="mt-4">
       <SectionCard eyebrow="Trajectory" title="Risk trajectory" hint="Signal over the 2-hour window · thresholds at 65 / 85"
