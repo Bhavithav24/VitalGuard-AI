@@ -16,6 +16,8 @@ def test_historical_replay_is_the_explicit_ingestion_path(tmp_path, monkeypatch)
     monkeypatch.setenv("VITALGUARD_DB_PATH", str(tmp_path / "replay.sqlite3"))
     with TestClient(app) as client:
         authenticate_test_client(client)
+        created=client.post("/api/v1/patients",json={"patient_id":"DEMO-REPLAY-001","external_identifier":"EXT-DEMO-REPLAY-001","display_name":"Replay Test Patient","age":58,"sex":"M","unit":"Test","bed":"R-01"})
+        assert created.status_code==201
         response = client.post("/api/v1/ingestion/batch", json={"records":[{
             "source_system":"synthetic-demo","source_mode":"historical_replay","source_event_id":"replay-001",
             "observed_at":datetime.now(timezone.utc).isoformat(),
