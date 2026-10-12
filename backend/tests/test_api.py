@@ -13,7 +13,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("VITALGUARD_AUTH_SECRET", "test-only-secret-that-is-at-least-32-chars")
     with TestClient(app) as test_client:
         login = test_client.post("/api/v1/auth/login", json={
-            "username": "demo-operator", "password": "a-long-demo-password"
+            "username": "demo-clinician", "password": "a-long-demo-password"
         })
         assert login.status_code == 200
         test_client.headers.update({"Authorization": f"Bearer {login.json()['access_token']}"})
@@ -228,7 +228,7 @@ def test_role_authorization_rejects_nurse_for_clinician_action(client, monkeypat
 
 
 def test_nurse_cannot_write_prediction(client, monkeypatch):
-    monkeypatch.setenv("VITALGUARD_AUTH_ROLE", "viewer")
+    monkeypatch.setenv("VITALGUARD_AUTH_ROLE", "nurse")
     login = client.post("/api/v1/auth/login", json={
         "username": "demo-operator", "password": "a-long-demo-password"
     })
