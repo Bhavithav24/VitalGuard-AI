@@ -74,9 +74,9 @@ export function PriorityTable({ patients, risks, latest, compact }: {
 }
 
 export function TriageMatrix({ patients, risks }: { patients: Patient[]; risks: Record<string, RiskSignal> }) {
-  const hiW = patients.filter((p) => risks[p.id] && (risks[p.id].score ?? -1) >= 65 && risks[p.id].trend === 'worsening');
+  const hiW = patients.filter((p) => risks[p.id] && risks[p.id].score !== null && (risks[p.id].score ?? -1) >= 65 && risks[p.id].trend === 'worsening');
   const hiS = patients.filter((p) => risks[p.id] && (risks[p.id].score ?? -1) >= 65 && risks[p.id].trend !== 'worsening');
-  const loW = patients.filter((p) => risks[p.id] && (risks[p.id].score ?? -1) < 65 && risks[p.id].trend === 'worsening');
+  const loW = patients.filter((p) => risks[p.id] && risks[p.id].score !== null && (risks[p.id].score ?? -1) < 65 && risks[p.id].trend === 'worsening');
   const loS = patients.filter((p) => risks[p.id] && (risks[p.id].score ?? -1) < 65 && risks[p.id].trend !== 'worsening');
   const Cell = ({ title, sub, list, hot }: { title: string; sub: string; list: Patient[]; hot?: boolean }) => (
     <div className={`rounded-2xl border p-3.5 min-h-[118px] transition-all duration-200 hover:-translate-y-0.5 ${hot ? 'border-rose-300/70 bg-gradient-to-br from-rose-50 to-orange-50/60 dark:from-rose-950/40 dark:to-orange-950/20 dark:border-rose-900/60' : 'border-slate-200/70 dark:border-white/[0.07] bg-slate-50/60 dark:bg-white/[0.02] hover:border-teal-300/60'}`}>
