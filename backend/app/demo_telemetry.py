@@ -54,9 +54,15 @@ def _vitals(profile: int, step: int, age: int) -> dict:
         {"heart_rate": 96, "spo2": 94, "systolic_bp": 116, "diastolic_bp": 74, "temperature": 37.5, "respiratory_rate": 21},
         {"heart_rate": 72, "spo2": 99, "systolic_bp": 118, "diastolic_bp": 76, "temperature": 36.6, "respiratory_rate": 14},
     ][profile]
+    values = {k: round(v + shift, 1) if isinstance(v, float) else v + shift for k, v in base.items()}
+    values["spo2"] = min(100, max(50, values["spo2"]))
+    values["heart_rate"] = min(250, max(20, values["heart_rate"]))
+    values["respiratory_rate"] = min(70, max(3, values["respiratory_rate"]))
+    values["systolic_bp"] = min(280, max(50, values["systolic_bp"]))
+    values["diastolic_bp"] = min(180, max(20, values["diastolic_bp"]))
     return {"patient_id": DEMO_PATIENTS[profile]["patient_id"], "age": age,
-            **{k: round(v + shift, 1) if isinstance(v, float) else v + shift for k, v in base.items()},
-            "consciousness": "alert", "supplemental_oxygen": False, "spo2_scale": 1, "scale2_authorized": False}
+            **values, "consciousness": "alert", "supplemental_oxygen": False,
+            "spo2_scale": 1, "scale2_authorized": False}
 
 async def emit_demo_tick() -> dict:
     _ensure_demo_patients()
