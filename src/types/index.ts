@@ -5,7 +5,7 @@ export type Ward = 'ICU' | 'Emergency' | 'General Ward' | 'Cardiology' | string;
 export interface Patient {
   id: string;
   age: number;
-  sex: 'M' | 'F';
+  sex: 'M' | 'F' | 'U';
   ward: Ward;
   bed: string;
   scenario?: TrendDirection;
