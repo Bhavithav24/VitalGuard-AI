@@ -19,7 +19,7 @@ export interface RiskPredictionResult {
   model_probability: number;
   factors: Array<{ feature: string; observed_value: number; direction: 'increases-risk' | 'decreases-risk'; explanation: string }>;
   model_version: string;
-  demo_only: true;
+  demo_only: boolean;
   disclaimer: string;
   news2?: number | null;
 }
@@ -41,7 +41,7 @@ export interface ObservationHistory {
   count: number;
   limit: number;
   next_before_id: number | null;
-  demo_only: true;
+  demo_only: boolean;
   disclaimer: string;
 }
 
