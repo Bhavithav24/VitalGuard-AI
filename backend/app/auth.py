@@ -39,9 +39,9 @@ _VALID_ROLES = {"admin", "clinician", "nurse"}
 # Demo deployment accounts. Production can disable these with
 # VITALGUARD_DISABLE_DEMO_DEFAULTS=true and provide managed credentials.
 _BUILTIN_DEMO_ACCOUNTS = [
-    {"username": "admin", "password": "", "password_hash": "pbkdf2_sha256$310000$PK1TOXou72BfqQa6x3cTSw$iVKEzxgDgL7zYDU4lxfqyHrG9vg3amZ6UbpyKIQb6PA", "role": "admin", "enabled": "true", "patient_prefixes": "*"},
-    {"username": "clinician", "password": "", "password_hash": "pbkdf2_sha256$310000$6tovcH7ECFRqRJW4KVFAHg$EkC2zyUZ5itim4qCRNo32uPZ3RQLb1iFxwBSuCXOfqQ", "role": "clinician", "enabled": "true", "patient_prefixes": "*"},
-    {"username": "nurse", "password": "", "password_hash": "pbkdf2_sha256$310000$Gxxc_Gnfnm7KgAey7v4nsA$HN6DDIgiEt6_ByLeCarlXU6Xep6KdOLyfaddxIoHy5Q", "role": "nurse", "enabled": "true", "patient_prefixes": "*"},
+    {"username": "admin", "password": "", "password_hash": "pbkdf2_sha256$310000$p_M-LRtHPTOC9YFQsb-aKA$vdYvLAhhW7gQmUnfl2o8_P4KksEa28d10QVWfsmKehM", "role": "admin", "enabled": "true", "patient_prefixes": "*"},
+    {"username": "clinician", "password": "", "password_hash": "pbkdf2_sha256$310000$hT0agpzz0g2rVMC6FO5nyg$9FMljghWhCGUWbPiETYARUohCgFjYcfywiIBHsOzuV8", "role": "clinician", "enabled": "true", "patient_prefixes": "*"},
+    {"username": "nurse", "password": "", "password_hash": "pbkdf2_sha256$310000$XcnGJtVo1c_CGrjiABMWlg$n-d_8mTk9MOEw6H1-mQGZBTKjXAaTh4Az_i6C1znlJ0", "role": "nurse", "enabled": "true", "patient_prefixes": "*"},
 ]
 
 
