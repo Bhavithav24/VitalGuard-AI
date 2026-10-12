@@ -2,7 +2,7 @@ from typing import Literal
 from pydantic import BaseModel,ConfigDict,Field,model_validator
 class VitalInput(BaseModel):
     model_config=ConfigDict(extra="forbid")
-    patient_id:str=Field(min_length=1,max_length=64);age:int=Field(ge=0,le=130);heart_rate:float=Field(ge=20,le=250);spo2:float=Field(ge=50,le=100);systolic_bp:float=Field(ge=50,le=280);diastolic_bp:float=Field(ge=20,le=180);temperature:float=Field(ge=30,le=45);respiratory_rate:float=Field(ge=3,le=70)
+    patient_id:str=Field(min_length=1,max_length=64);age:int=Field(ge=0,le=130);heart_rate:float=Field(ge=20,le=250);spo2:float=Field(ge=50,le=100);systolic_bp:float=Field(ge=50,le=280);diastolic_bp:float=Field(ge=20,le=180);temperature:float=Field(ge=30,le=45);respiratory_rate:float=Field(ge=3,le=70);consciousness:Literal["alert","new_confusion","voice","pain","unresponsive"]|None=None;supplemental_oxygen:bool=False;spo2_scale:Literal[1,2]=1;scale2_authorized:bool=False
     @model_validator(mode="after")
     def validate_blood_pressure(self):
         if self.diastolic_bp>=self.systolic_bp:raise ValueError("diastolic_bp must be lower than systolic_bp")
