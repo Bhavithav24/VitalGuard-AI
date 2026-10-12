@@ -18,6 +18,7 @@ def client(tmp_path, monkeypatch):
 def item(event_id="source-event-001", **updates):
     payload = {
         "source_system": "synthetic-demo",
+        "source_mode": "historical_replay",
         "source_event_id": event_id,
         "observed_at": datetime.now(timezone.utc).isoformat(),
         "observation": {
@@ -53,7 +54,7 @@ def test_batch_ingestion_accepts_valid_record_and_persists_provenance(client):
     assert record["status"] == "accepted"
     assert record["observation_id"] > 0
     assert record["source_event_id"] == "source-event-001"
-    assert record["demo_only"] is True
+    assert record["source_mode"] == "historical_replay"
 
 
 def test_batch_ingestion_is_idempotent_for_same_source_event(client):
