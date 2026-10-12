@@ -184,8 +184,8 @@ def require_roles(*allowed_roles: Role):
         raise ValueError("At least one allowed role is required")
 
     def dependency(principal: Annotated[dict[str, str], Depends(authenticate_principal)]) -> dict[str, str]:
-        normalized = {"operator": "clinician", "viewer": "nurse"}.get(principal.get("role"), principal.get("role"))
-        allowed = {{"operator": "clinician", "viewer": "nurse"}.get(role, role) for role in allowed_roles}
+        normalized = principal.get("role")
+        allowed = set(allowed_roles)
         if normalized not in allowed:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
         return principal

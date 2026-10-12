@@ -121,7 +121,7 @@ def operational_readiness(principal: dict = Depends(authenticate_principal)):
         "checks": {
             "api": "ok",
             "database": database_status,
-            "operator_auth_configured": auth_configured,
+            "auth_configured": auth_configured,
             "model_loaded": True,
             "websocket_transport": hub.transport,
         },
@@ -137,7 +137,7 @@ def operational_readiness(principal: dict = Depends(authenticate_principal)):
 
 
 @app.get("/api/v1/ops/metrics")
-def operational_metrics(principal: dict = Depends(require_roles("admin", "operator"))):
+def operational_metrics(principal: dict = Depends(require_roles("admin", "clinician"))):
     """Return bounded-cardinality, process-local metrics without request data."""
     with _metrics_lock:
         count = _request_count
@@ -207,7 +207,7 @@ async def predict(payload: VitalInput, principal: dict = Depends(require_roles("
     return response
 
 @app.post("/api/v1/risk/explain")
-def explain_risk(payload: VitalInput, principal: dict = Depends(require_roles("admin", "operator", "viewer"))):
+def explain_risk(payload: VitalInput, principal: dict = Depends(require_roles("admin", "clinician", "nurse"))):
     require_patient_access(payload.patient_id, principal)
     values = payload.model_dump(exclude={"patient_id"})
     return {"patient_id": payload.patient_id, "model_version": MODEL_VERSION,

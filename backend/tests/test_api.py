@@ -8,7 +8,7 @@ from app.main import app
 def client(tmp_path, monkeypatch):
     # Isolate each test so no local or deployed demo history leaks between tests.
     monkeypatch.setenv("VITALGUARD_DB_PATH", str(tmp_path / "test.sqlite3"))
-    monkeypatch.setenv("VITALGUARD_AUTH_USERNAME", "demo-operator")
+    monkeypatch.setenv("VITALGUARD_AUTH_USERNAME", "demo-clinician")
     monkeypatch.setenv("VITALGUARD_AUTH_PASSWORD", "a-long-demo-password")
     monkeypatch.setenv("VITALGUARD_AUTH_SECRET", "test-only-secret-that-is-at-least-32-chars")
     with TestClient(app) as test_client:
@@ -213,8 +213,8 @@ def test_alert_audit_actor_comes_from_authenticated_identity(client):
     assert response.status_code == 200
 
 
-def test_role_authorization_rejects_viewer_for_operator_action(client, monkeypatch):
-    monkeypatch.setenv("VITALGUARD_AUTH_ROLE", "viewer")
+def test_role_authorization_rejects_nurse_for_clinician_action(client, monkeypatch):
+    monkeypatch.setenv("VITALGUARD_AUTH_ROLE", "nurse")
     login = client.post("/api/v1/auth/login", json={
         "username": "demo-operator", "password": "a-long-demo-password"
     })
@@ -224,10 +224,10 @@ def test_role_authorization_rejects_viewer_for_operator_action(client, monkeypat
     # confirms the role claim is carried consistently for authorization layers.
     identity = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert identity.status_code == 200
-    assert identity.json()["role"] == "viewer"
+    assert identity.json()["role"] == "nurse"
 
 
-def test_viewer_cannot_write_prediction(client, monkeypatch):
+def test_nurse_cannot_write_prediction(client, monkeypatch):
     monkeypatch.setenv("VITALGUARD_AUTH_ROLE", "viewer")
     login = client.post("/api/v1/auth/login", json={
         "username": "demo-operator", "password": "a-long-demo-password"
@@ -241,7 +241,7 @@ def test_viewer_cannot_write_prediction(client, monkeypatch):
     assert response.status_code == 403
 
 
-def test_viewer_can_read_observations(client, monkeypatch):
+def test_nurse_can_read_observations(client, monkeypatch):
     monkeypatch.setenv("VITALGUARD_AUTH_ROLE", "viewer")
     login = client.post("/api/v1/auth/login", json={
         "username": "demo-operator", "password": "a-long-demo-password"
@@ -288,7 +288,7 @@ def test_role_permissions_endpoint_reports_current_role(client):
     assert response.status_code == 200
     body = response.json()
     assert body["current_role"] == "admin"
-    assert set(body["roles"]) == {"admin", "operator", "viewer"}
+    assert set(body["roles"]) == {"admin", "clinician", "nurse"}
 
 
 def test_shared_auth_state_fails_closed_when_redis_is_configured_but_unavailable(monkeypatch):

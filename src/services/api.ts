@@ -61,7 +61,7 @@ export interface ReadinessSnapshot {
   notes: string[];
 }
 
-const AUTH_STORAGE_KEY = 'vitalguard.operator.session';
+const AUTH_STORAGE_KEY = 'vitalguard.session';
 function getAccessToken(): string | null {
   try {
     const raw = sessionStorage.getItem(AUTH_STORAGE_KEY);

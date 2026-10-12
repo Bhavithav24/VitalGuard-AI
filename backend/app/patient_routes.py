@@ -55,7 +55,7 @@ def _require_scoped_patient(patient_id: str, principal: dict[str, str]):
     return row
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-def create_patient(payload: PatientCreate, principal: Annotated[dict[str, str], Depends(require_roles("admin", "operator"))]):
+def create_patient(payload: PatientCreate, principal: Annotated[dict[str, str], Depends(require_roles("admin", "clinician"))]):
     engine = _engine(); now = datetime.now(timezone.utc)
     try:
         with engine.begin() as connection:
@@ -68,7 +68,9 @@ def create_patient(payload: PatientCreate, principal: Annotated[dict[str, str], 
             except IntegrityError as exc:
                 raise HTTPException(status_code=409, detail="Patient identifier already exists") from exc
             row = connection.execute(select(patients).where(patients.c.patient_id == payload.patient_id)).mappings().one()
-        return _serialize(row)
+        result = _serialize(row)
+        record_security_event("patient_created", principal["sub"], {"patient_id": payload.patient_id})
+        return result
     finally: engine.dispose()
 
 @router.get("")
@@ -101,7 +103,9 @@ def update_patient(patient_id: str, payload: PatientUpdate, principal: Annotated
             try: connection.execute(update(patients).where(patients.c.patient_id == patient_id).values(**changes))
             except IntegrityError as exc: raise HTTPException(status_code=409, detail="Patient update conflicts with an existing record") from exc
             row = connection.execute(select(patients).where(patients.c.patient_id == patient_id)).mappings().one()
-        return _serialize(row)
+        result = _serialize(row)
+        record_security_event("patient_updated", principal["sub"], {"patient_id": patient_id, "fields": sorted(changes.keys())})
+        return result
     finally: engine.dispose()
 
 @router.post("/{patient_id}/deactivate")
@@ -111,5 +115,7 @@ def deactivate_patient(patient_id: str, principal: Annotated[dict[str, str], Dep
         with engine.begin() as connection:
             connection.execute(update(patients).where(patients.c.patient_id == patient_id).values(active=False, deactivated_at=now, updated_at=now))
             row = connection.execute(select(patients).where(patients.c.patient_id == patient_id)).mappings().one()
-        return _serialize(row)
+        result = _serialize(row)
+        record_security_event("patient_deactivated", principal["sub"], {"patient_id": patient_id})
+        return result
     finally: engine.dispose()
