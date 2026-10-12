@@ -10,7 +10,7 @@ export function ExplainCard({ patientId }: { patientId: string }) {
   const { latest, risks } = useSimulation();
   const v = latest[patientId];
   const r = risks[patientId];
-  if (!v || !r) return null;
+  if (!v || !r || !r.mlAvailable || r.level === 'unavailable' || r.factors?.length === 0) return null;
   const factors = (r.factors ?? []).map((f) => ({
     patientId,
     name: f.feature,
