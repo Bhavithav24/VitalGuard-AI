@@ -73,7 +73,7 @@ def _error_detail(error: ValidationError) -> list[dict[str, str]]:
     ]
 
 
-@router.post("/batch")
+@ingestion_router.post("/batch")
 async def ingest_batch(batch: IngestionBatch, principal: dict = Depends(require_roles("admin", "operator"))):
     """Validate each item independently; valid items commit even when peers fail."""
     results: list[dict[str, Any]] = []
@@ -147,4 +147,4 @@ async def ingest_batch(batch: IngestionBatch, principal: dict = Depends(require_
         "demo_only": True,
         "disclaimer": "Synthetic demo ingestion only. No real patient data or clinical use is authorized.",
     }
-\n\n# Patient CRUD is mounted here until the central application router is refactored in a later phase.\nfrom .patient_routes import router as patient_router\nrouter.routes.extend(patient_router.routes)\n
+\n\nfrom .patient_routes import router as patient_router\nrouter = APIRouter()\nrouter.include_router(ingestion_router)\nrouter.include_router(patient_router)\n
