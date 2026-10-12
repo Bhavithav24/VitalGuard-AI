@@ -35,3 +35,5 @@ users = Table(
 )
 Index("idx_users_enabled_role", users.c.enabled, users.c.role)
 
+
+# phase1 schema marker
