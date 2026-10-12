@@ -24,5 +24,5 @@ export function useLiveEvents() {
     }
   }, setStatus), []);
 
-  return { status, lastEvent, patientCount: patientIds.size };
+  return { status, lastEvent, eventCount: patientIds.size, patientCount: patientIds.size };
 }
