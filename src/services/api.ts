@@ -14,9 +14,10 @@ export interface RiskPredictionResult {
   patient_id: string;
   observation_id: number | null;
   created_at: string | null;
-  risk_score: number;
-  risk_level: 'low' | 'moderate' | 'high' | 'critical';
-  model_probability: number;
+  risk_score: number | null;
+  risk_level: 'low' | 'moderate' | 'high' | 'critical' | 'unavailable';
+  model_probability: number | null;
+  ml_available: boolean;
   factors: Array<{ feature: string; observed_value: number; direction: 'increases-risk' | 'decreases-risk'; explanation: string }>;
   model_version: string;
   demo_only: boolean;
