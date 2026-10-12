@@ -6,7 +6,7 @@ import { useOptionalAuth } from '../../store/AuthContext.tsx';
 export function SimBar() {
   const { running, start, pause, reset, speed, setSpeed, multiplier, setMultiplier, tick, risks } = useSimulation();
   const auth = useOptionalAuth();
-  const canControl = !auth || auth.role === "admin" || auth.role === "operator";
+  const canControl = !auth || auth.role === "admin" || auth.role === "clinician";
   const hero = risks['P-SIM-003'];
   return (
     <div className="px-4 md:px-8 pt-4">
