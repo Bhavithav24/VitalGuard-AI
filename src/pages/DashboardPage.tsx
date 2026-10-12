@@ -15,9 +15,12 @@ import { useSimulation } from '../store/useSimulation.ts';
 import { DataQualityPanel } from '../components/dashboard/DataQualityPanel.tsx';
 import { BackendObservationHistory } from '../components/dashboard/BackendObservationHistory.tsx';
 import { SystemReadinessCard } from '../components/dashboard/SystemReadinessCard.tsx';
+import { useLiveEvents } from '../services/useLiveEvents.ts';
 
 export function DashboardPage() {
-  const { patients, risks, latest, alerts, running } = useSimulation();
+  const { patients, risks, latest, alerts } = useSimulation();
+  const { status } = useLiveEvents();
+  const live = status === 'connected';
   const [filters, setFilters] = useFilterState();
   const filtered = useMemo(() => filterCohort(patients, risks, filters), [patients, risks, filters]);
   const dist = useMemo(() => {
@@ -43,8 +46,8 @@ export function DashboardPage() {
         </div>
         <div className="relative max-w-2xl">
           <p className="eyebrow clinical-kicker inline-flex items-center gap-2">
-            <span className={`h-1.5 w-1.5 rounded-full ${running ? 'bg-emerald-500 pulse-dot' : 'bg-slate-300'}`} aria-hidden />
-            BACKEND MONITORING · {running ? 'streaming' : 'waiting for source data'}
+            <span className={`h-1.5 w-1.5 rounded-full ${live ? 'bg-emerald-500 pulse-dot' : 'bg-slate-300'}`} aria-hidden />
+            BACKEND MONITORING · {live ? 'streaming' : 'waiting for source data'}
           </p>
           <h2 className="font-display text-[32px] sm:text-[40px] leading-[1.06] font-extrabold tracking-tight mt-2 text-slate-900 dark:text-slate-50">See the signals.<br className="hidden sm:block" /> Prioritise the review.</h2>
           <p className="text-sm sm:text-[15px] clinical-muted mt-3 leading-relaxed max-w-xl">A unified view of {patients.length} registered patients, observed vital signs, risk assessments and review priorities. Data is sourced from the backend and persisted before it is displayed.</p>
