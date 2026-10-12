@@ -13,7 +13,7 @@ def get_alerts(status:Literal["open","acknowledged","assigned","resolved"]|None=
     if patient_id:require_patient_access(patient_id,principal)
     items=list_alerts(status=status,patient_id=patient_id,limit=limit,patient_prefixes=patient_scope_prefixes(principal));return {"items":items,"count":len(items)}
 @router.post("/{alert_id}/acknowledge")
-def acknowledge_alert(alert_id:int,payload:AlertAction,principal:dict=Depends(require_roles("admin","operator"))):
+def acknowledge_alert(alert_id:int,payload:AlertAction,principal:dict=Depends(require_roles("admin","clinician"))):
     alert=get_alert(alert_id)
     if alert is None:raise HTTPException(status_code=404,detail="Alert not found")
     require_patient_access(alert["patient_id"],principal);return {"item":transition_alert(alert_id,"acknowledge",principal["sub"])}
