@@ -80,14 +80,22 @@ def test_batch_ingestion_keeps_valid_records_when_peer_is_invalid(client):
 
 
 @pytest.mark.parametrize("change", [
-    {"observation": {"patient_id": "PATIENT-REAL-1", "age": 58, "heart_rate": 82, "spo2": 98,
+    {"observation": {"patient_id": "DEMO-INGEST-001", "age": 58, "heart_rate": -1, "spo2": 98,
         "systolic_bp": 122, "diastolic_bp": 78, "temperature": 37, "respiratory_rate": 16}},
     {"observed_at": "2026-10-11T10:00:00"},
-    {"source_system": "hospital-feed"},
+    {"source_system": "hospital feed"},
 ])
-def test_batch_ingestion_rejects_non_demo_or_untrusted_metadata(client, change):
+def test_batch_ingestion_rejects_invalid_source_or_observation_metadata(client, change):
     response = client.post("/api/v1/ingestion/batch", json={"records": [item("bad-event", **change)]})
     assert response.status_code == 200
     assert response.json()["rejected"] == 1
     assert response.json()["items"][0]["status"] == "rejected"
 
+
+def test_live_ingestion_requires_authorized_source_token(client, monkeypatch):
+    monkeypatch.delenv("VITALGUARD_LIVE_SOURCE_TOKEN", raising=False)
+    payload = item("live-event", source_mode="live")
+    response = client.post("/api/v1/ingestion/batch", json={"records": [payload]})
+    assert response.status_code == 200
+    assert response.json()["rejected"] == 1
+    assert response.json()["items"][0]["status"] == "rejected"
