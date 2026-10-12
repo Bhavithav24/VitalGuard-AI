@@ -57,6 +57,11 @@ def test_batch_ingestion_accepts_valid_record_and_persists_provenance(client):
     assert record["observation_id"] > 0
     assert record["source_event_id"] == "source-event-001"
     assert record["source_mode"] == "historical_replay"
+    history = client.get("/api/v1/observations", params={"patient_id": "DEMO-INGEST-001"}).json()
+    prediction = history["items"][0]["prediction"]
+    assert prediction["demo_only"] is True
+    assert prediction["ml_available"] is True
+    assert prediction["disclaimer"].startswith("Historical replay research signal only")
 
 
 def test_batch_ingestion_is_idempotent_for_same_source_event(client):
@@ -110,3 +115,18 @@ def test_live_ingestion_requires_authorized_source_token(client, monkeypatch):
     assert response.status_code == 200
     assert response.json()["rejected"] == 1
     assert response.json()["items"][0]["status"] == "rejected"
+
+
+def test_live_ingestion_with_authorized_source_never_generates_synthetic_ml(client, monkeypatch):
+    monkeypatch.setenv("VITALGUARD_LIVE_SOURCE_TOKEN", "test-live-source-token")
+    payload = item("authorized-live-event", source_mode="live")
+    response = client.post("/api/v1/ingestion/batch", headers={"X-Source-Token": "test-live-source-token"}, json={"records": [payload]})
+    assert response.status_code == 200
+    assert response.json()["accepted"] == 1
+    history = client.get("/api/v1/observations", params={"patient_id": "DEMO-INGEST-001"}).json()
+    prediction = history["items"][0]["prediction"]
+    assert prediction["risk_score"] is None
+    assert prediction["risk_level"] == "unavailable"
+    assert prediction["model_probability"] is None
+    assert prediction["ml_available"] is False
+    assert prediction["demo_only"] is False
