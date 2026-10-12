@@ -17,16 +17,17 @@ from .auth import require_roles
 from .ingestion_store import persist_ingested_observation
 from .live_events import hub
 from .schemas import RiskPrediction, VitalInput
+from .news2 import score_news2
 from .storage import _engine
 from .storage_schema import patients
 
 router = APIRouter(prefix="/api/v1/demo", tags=["demo"])
 
 DEMO_PATIENTS = [
-    {"patient_id": "DEMO-001", "external_identifier": "VG-DEMO-001", "display_name": "Demo Patient 01", "age": 42, "sex": "F", "unit": "Demo Ward A", "bed": "A-01"},
-    {"patient_id": "DEMO-002", "external_identifier": "VG-DEMO-002", "display_name": "Demo Patient 02", "age": 57, "sex": "M", "unit": "Demo Ward A", "bed": "A-02"},
-    {"patient_id": "DEMO-003", "external_identifier": "VG-DEMO-003", "display_name": "Demo Patient 03", "age": 68, "sex": "F", "unit": "Demo Ward B", "bed": "B-01"},
-    {"patient_id": "DEMO-004", "external_identifier": "VG-DEMO-004", "display_name": "Demo Patient 04", "age": 31, "sex": "M", "unit": "Demo Ward B", "bed": "B-02"},
+    {"patient_id": "DEMO-001", "external_identifier": "VG-DEMO-001", "display_name": "Patient 01", "age": 42, "sex": "F", "unit": "Demo Ward A", "bed": "A-01"},
+    {"patient_id": "DEMO-002", "external_identifier": "VG-DEMO-002", "display_name": "Patient 02", "age": 57, "sex": "M", "unit": "Demo Ward A", "bed": "A-02"},
+    {"patient_id": "DEMO-003", "external_identifier": "VG-DEMO-003", "display_name": "Patient 03", "age": 68, "sex": "F", "unit": "Demo Ward B", "bed": "B-01"},
+    {"patient_id": "DEMO-004", "external_identifier": "VG-DEMO-004", "display_name": "Patient 04", "age": 31, "sex": "M", "unit": "Demo Ward B", "bed": "B-02"},
 ]
 
 def _ensure_demo_patients() -> None:
@@ -73,11 +74,13 @@ async def emit_demo_tick() -> dict:
     for profile, patient in enumerate(DEMO_PATIENTS):
         values = _vitals(profile, step, patient["age"])
         vital = VitalInput.model_validate(values)
+        news2_result = score_news2(vital.model_dump())
         prediction = RiskPrediction(
             patient_id=patient["patient_id"], risk_score=None, risk_level="unavailable",
             model_probability=None, factors=[], model_version="unavailable",
-            news2=None, demo_only=False, ml_available=False,
-            disclaimer="No clinically validated ML model is configured for live observations. This demonstration source supplies monitor-style telemetry only.",
+            news2=(news2_result["total_score"] if news2_result["complete"] else None),
+            demo_only=True, ml_available=False,
+            disclaimer="No clinically validated ML model is configured for live observations. This controlled demonstration source supplies monitor-style telemetry only.",
         )
         event_id = f"demo-monitor-{step}-{patient['patient_id']}"
         payload = {"source_system": "bedside-monitor-demo", "source_mode": "live", "source_event_id": event_id,
