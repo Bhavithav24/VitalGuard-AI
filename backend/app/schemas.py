@@ -10,7 +10,16 @@ class VitalInput(BaseModel):
 class RiskFactor(BaseModel):
     feature:str;observed_value:float;direction:Literal["increases-risk","decreases-risk"];explanation:str
 class RiskPrediction(BaseModel):
-    patient_id:str;observation_id:int|None=None;created_at:str|None=None;risk_score:int=Field(ge=0,le=100);risk_level:Literal["low","moderate","high","critical"];model_probability:float=Field(ge=0,le=1);factors:list[RiskFactor];model_version:str;news2:int|None=None;demo_only:bool=False;disclaimer:str="Risk output is decision support only; it is not a diagnosis or treatment recommendation."
+    patient_id:str;observation_id:int|None=None;created_at:str|None=None
+    risk_score:int|None=Field(default=None,ge=0,le=100)
+    risk_level:Literal["low","moderate","high","critical","unavailable"]="unavailable"
+    model_probability:float|None=Field(default=None,ge=0,le=1)
+    factors:list[RiskFactor]=Field(default_factory=list)
+    model_version:str
+    news2:int|None=None
+    demo_only:bool=False
+    ml_available:bool=False
+    disclaimer:str="Risk output is decision support only; it is not a diagnosis or treatment recommendation."
 class NEWS2Input(BaseModel):
     model_config=ConfigDict(extra="forbid")
     patient_id:str=Field(min_length=1,max_length=64);respiratory_rate:int=Field(ge=1,le=100);spo2:int=Field(ge=50,le=100);systolic_bp:int=Field(ge=20,le=300);heart_rate:int=Field(ge=1,le=250);temperature:float=Field(ge=30,le=45);consciousness:Literal["alert","new_confusion","voice","pain","unresponsive"]="alert";supplemental_oxygen:bool=False;spo2_scale:Literal[1,2]=1;scale2_authorized:bool=False
