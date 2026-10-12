@@ -34,6 +34,7 @@ export interface RiskSignal {
   trajectory: number[];
   trajectoryLabels: string[];
   updatedAt: string;
+  factors?: Array<{ feature: string; observedValue: number; direction: "increases-risk" | "decreases-risk"; explanation: string }>;
 }
 
 export interface RiskFactor {
