@@ -1,12 +1,12 @@
 import type { RiskLevel } from '../../types/index.ts';
 import { RISK_STYLES } from '../../theme/tokens.ts';
 
-export function RiskBadge({ level, score }: { level: RiskLevel; score?: number }) {
+export function RiskBadge({ level, score }: { level: RiskLevel; score?: number | null }) {
   const s = RISK_STYLES[level];
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border tabular-nums ${s.badge}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} aria-hidden />
-      <span className="capitalize">{level}</span>{score !== undefined ? <span className="opacity-80">· {score}</span> : null}
+      <span className="capitalize">{level}</span>{score !== undefined && score !== null ? <span className="opacity-80">· {score}</span> : null}
     </span>
   );
 }
