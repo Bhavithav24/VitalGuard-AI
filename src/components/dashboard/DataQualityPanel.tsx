@@ -77,7 +77,7 @@ export function DataQualityPanel() {
         </div>
         {data.items.length > 0 ? <div className="mt-3 overflow-x-auto">
           <table className="w-full text-sm">
-            <thead><tr className="table-head"><th>Demo patient</th><th>Feed status</th><th>Last observation</th><th>Missing fields</th></tr></thead>
+            <thead><tr className="table-head"><th>Patient</th><th>Feed status</th><th>Last observation</th><th>Missing fields</th></tr></thead>
             <tbody>{data.items.slice(0, 8).map((item) => <tr className="table-row" key={item.patient_id}>
               <td className="px-3 py-3 font-semibold">{item.patient_id}</td>
               <td className="px-3 py-3"><span className={`rounded-md px-2 py-1 text-[10px] uppercase tracking-wider font-bold ${item.status === 'fresh' ? 'bg-teal-50 text-teal-700' : item.status === 'stale' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700'}`}>{item.status}</span></td>
@@ -87,7 +87,7 @@ export function DataQualityPanel() {
           </table>
         </div> : <p className="text-sm text-slate-500 mt-4">No persisted observations in the backend history window yet.</p>}
       </>}
-      <p className="mt-3 text-[11px] text-slate-400">Stale or missing data is unknown, not normal. This panel evaluates persisted synthetic records only and cannot verify device connectivity.</p>
+      <p className="mt-3 text-[11px] text-slate-400">Stale or missing data is unknown, not normal. This panel evaluates persisted backend records only. A fresh record does not by itself prove that a bedside device is connected.</p>
     </section>
   );
 }
