@@ -22,7 +22,7 @@ export function PatientRows({ slice, risks, latest }: {
             <td className="px-3 py-3.5 text-slate-500 tabular-nums whitespace-nowrap">{p.age} / {p.sex}</td>
             <td className="px-3 py-3.5 whitespace-nowrap text-slate-600 dark:text-slate-300">{p.ward} <span className="text-slate-400">· {p.bed}</span></td>
             <td className="px-3 py-3.5">
-              <RiskBadge level={r.level} score={r.score} />
+              <RiskBadge level={r.level} score={r.score ?? undefined} />
               <div className="mt-1.5 h-1 w-20 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden" aria-hidden>
                 <div className="h-full rounded-full vg-bar-grow" style={{ width: `${r.score ?? 0}%`, background: s.hex }} />
               </div>
@@ -57,7 +57,7 @@ export function PatientCards({ slice, risks, latest }: {
             <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${s.hex}, transparent)` }} aria-hidden />
             <div className="flex items-center justify-between gap-2">
               <p className="font-display font-extrabold tracking-tight text-[15px]">{p.id}</p>
-              <RiskBadge level={r.level} score={r.score} />
+              <RiskBadge level={r.level} score={r.score ?? undefined} />
             </div>
             <p className="text-xs text-slate-500 mt-1">{p.ward} · Bed {p.bed} · Age {p.age} · {p.sex}</p>
             <div className="mt-3"><Sparkline data={r.trajectory} color={s.hex} height={44} /></div>
