@@ -21,6 +21,7 @@ def test_readiness_is_authenticated_and_secret_free(client):
     assert body["checks"]["database"] == "ok"
     assert body["checks"]["auth_configured"] is True
     assert body["checks"]["model_loaded"] is True
+    assert body["checks"]["validated_ml_available"] is False
     assert body["checks"]["websocket_transport"] in {"memory", "process_local_best_effort", "redis"}
     assert body["demo_only"] is True
     assert body["clinically_validated"] is False
