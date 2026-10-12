@@ -49,7 +49,7 @@ export function PriorityTable({ patients, risks, latest, compact }: {
                       <RiskBadge level={r.level} score={r.score} />
                     </div>
                     <div className="mt-1.5 h-1 w-24 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden" aria-hidden>
-                      <div className="h-full rounded-full vg-bar-grow" style={{ width: `${r.score}%`, background: s.hex }} />
+                      <div className="h-full rounded-full vg-bar-grow" style={{ width: `${r.score ?? 0}%`, background: s.hex }} />
                     </div>
                   </td>
                   <td className="px-3 py-3 text-right font-bold tabular-nums">{r.news2}</td>
@@ -74,10 +74,10 @@ export function PriorityTable({ patients, risks, latest, compact }: {
 }
 
 export function TriageMatrix({ patients, risks }: { patients: Patient[]; risks: Record<string, RiskSignal> }) {
-  const hiW = patients.filter((p) => risks[p.id] && risks[p.id].score >= 65 && risks[p.id].trend === 'worsening');
-  const hiS = patients.filter((p) => risks[p.id] && risks[p.id].score >= 65 && risks[p.id].trend !== 'worsening');
-  const loW = patients.filter((p) => risks[p.id] && risks[p.id].score < 65 && risks[p.id].trend === 'worsening');
-  const loS = patients.filter((p) => risks[p.id] && risks[p.id].score < 65 && risks[p.id].trend !== 'worsening');
+  const hiW = patients.filter((p) => risks[p.id] && (risks[p.id].score ?? -1) >= 65 && risks[p.id].trend === 'worsening');
+  const hiS = patients.filter((p) => risks[p.id] && (risks[p.id].score ?? -1) >= 65 && risks[p.id].trend !== 'worsening');
+  const loW = patients.filter((p) => risks[p.id] && (risks[p.id].score ?? -1) < 65 && risks[p.id].trend === 'worsening');
+  const loS = patients.filter((p) => risks[p.id] && (risks[p.id].score ?? -1) < 65 && risks[p.id].trend !== 'worsening');
   const Cell = ({ title, sub, list, hot }: { title: string; sub: string; list: Patient[]; hot?: boolean }) => (
     <div className={`rounded-2xl border p-3.5 min-h-[118px] transition-all duration-200 hover:-translate-y-0.5 ${hot ? 'border-rose-300/70 bg-gradient-to-br from-rose-50 to-orange-50/60 dark:from-rose-950/40 dark:to-orange-950/20 dark:border-rose-900/60' : 'border-slate-200/70 dark:border-white/[0.07] bg-slate-50/60 dark:bg-white/[0.02] hover:border-teal-300/60'}`}>
       <p className={`text-[11px] font-extrabold uppercase tracking-[0.1em] ${hot ? 'text-rose-700 dark:text-rose-300' : 'text-slate-500'}`}>{title}</p>
