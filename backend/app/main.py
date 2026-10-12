@@ -34,16 +34,22 @@ logger = logging.getLogger(__name__)
 async def lifespan(_app: FastAPI):
     initialize_storage()
     await hub.start()
+    demo_enabled = os.getenv("VITALGUARD_DEMO_TELEMETRY_ENABLED", "").strip().lower() == "true"
+
     async def _demo_loop():
         while True:
             try:
                 result = await emit_demo_tick()
-                logger.warning("Controlled demo telemetry tick: %s", result)
+                logger.info("Controlled demo telemetry tick: %s", result)
             except Exception:
                 logger.exception("Controlled demo telemetry tick failed")
             await asyncio.sleep(60)
-    demo_task = asyncio.create_task(_demo_loop())
-    logger.warning("Controlled demo telemetry loop enabled")
+
+    demo_task = asyncio.create_task(_demo_loop()) if demo_enabled else None
+    if demo_enabled:
+        logger.warning("Controlled demo telemetry loop enabled")
+    else:
+        logger.info("Controlled demo telemetry loop disabled")
     try:
         yield
     finally:
