@@ -9,6 +9,7 @@ export interface SimValue {
   risks: Record<string, RiskSignal>;
   histories: Record<string, VitalReading[]>;
   alerts: AlertItem[];
+  streamStatus: 'connecting' | 'connected' | 'reconnecting' | 'offline';
   toasts: ToastMsg[];
   running: boolean;
   tick: number;
