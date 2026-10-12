@@ -6,6 +6,8 @@ from typing import Any,Literal
 from fastapi import APIRouter,Depends,Header
 from pydantic import BaseModel,ConfigDict,Field,ValidationError,field_validator
 from .auth import require_roles,require_patient_access
+from .patient_routes import _get_patient
+from .alert_service import create_alert
 from .ingestion_store import persist_ingested_observation
 from .live_events import hub
 from .model import MODEL_VERSION,explain,predict_probability,risk_level
@@ -36,6 +38,9 @@ async def ingest_batch(batch:IngestionBatch,principal:dict=Depends(require_roles
         try:item=IngestionItem.model_validate(raw)
         except ValidationError as error:results.append({"index":index,"status":"rejected","errors":_errors(error)});continue
         require_patient_access(item.observation.patient_id,principal)
+        patient=_get_patient(item.observation.patient_id)
+        if patient is None or not patient["active"]:
+            results.append({"index":index,"status":"rejected","errors":[{"field":"observation.patient_id","message":"Patient does not exist or is inactive"}]});continue
         if item.source_mode=="live" and (not configured or not x_source_token or not hmac.compare_digest(x_source_token,configured)):
             results.append({"index":index,"status":"rejected","errors":[{"field":"source_mode","message":"Authorized live source is not configured"}]});continue
         values=item.observation.model_dump(exclude={"patient_id"});probability=predict_probability(values);score=round(probability*100)
@@ -46,6 +51,10 @@ async def ingest_batch(batch:IngestionBatch,principal:dict=Depends(require_roles
         if persisted["status"]=="accepted":
             response=prediction.model_copy(update={"observation_id":persisted["observation_id"],"created_at":item.observed_at.isoformat()})
             await hub.broadcast({"type":"observation.created","event_id":persisted["observation_id"],"patient_id":item.observation.patient_id,"observed_at":item.observed_at.isoformat(),"observation":values,"prediction":response.model_dump(),"source_system":item.source_system,"source_mode":item.source_mode})
+            if score >= 65:
+                alert=create_alert(patient_id=item.observation.patient_id,event_key=f"observation:{persisted['observation_id']}:elevated-risk",severity="critical" if response.risk_level=="critical" else "high",title=f"{response.risk_level.title()} risk signal",details={"observation_id":persisted["observation_id"],"risk_score":score,"risk_level":response.risk_level,"source_mode":item.source_mode})
+                if alert:
+                    await hub.broadcast({"type":"alert.created","event_id":alert["id"],"patient_id":item.observation.patient_id,"alert":alert,"source_mode":item.source_mode})
     accepted=sum(x["status"]=="accepted" for x in results);duplicates=sum(x["status"]=="duplicate" for x in results);conflicts=sum(x["status"]=="conflict" for x in results)
     return {"items":results,"count":len(results),"accepted":accepted,"duplicates":duplicates,"conflicts":conflicts,"rejected":len(results)-accepted-duplicates}
 from .patient_routes import router as patient_router
