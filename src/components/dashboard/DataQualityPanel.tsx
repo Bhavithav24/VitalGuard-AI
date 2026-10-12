@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Clock3, RefreshCw, ShieldAlert } from 'lucide-react';
 import { APP_CONFIG } from '../../services/config.ts';
 import { authorizedFetch } from '../../services/authenticatedFetch.ts';
+import { useSimulation } from '../../store/useSimulation.ts';
 
 type QualityItem = {
   patient_id: string;
@@ -32,6 +33,7 @@ export function DataQualityPanel() {
   const [data, setData] = useState<QualityResponse | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const { patients } = useSimulation();
 
   const refresh = useCallback(async () => {
     try {
@@ -54,9 +56,11 @@ export function DataQualityPanel() {
     return () => clearInterval(timer);
   }, [refresh]);
 
-  const stale = data?.items.filter((item) => item.status === 'stale').length ?? 0;
-  const incomplete = data?.items.filter((item) => item.status === 'incomplete' || item.status === 'unknown').length ?? 0;
-  const fresh = data?.items.filter((item) => item.status === 'fresh').length ?? 0;
+  const patientIds = new Set(patients.map((patient) => patient.id));
+  const visibleItems = data?.items.filter((item) => patientIds.has(item.patient_id)) ?? [];
+  const stale = visibleItems.filter((item) => item.status === 'stale').length;
+  const incomplete = visibleItems.filter((item) => item.status === 'incomplete' || item.status === 'unknown').length;
+  const fresh = visibleItems.filter((item) => item.status === 'fresh').length;
 
   return (
     <section className="card mt-4 p-4 sm:p-5" aria-labelledby="data-quality-heading">
@@ -77,14 +81,14 @@ export function DataQualityPanel() {
           <div className="rounded-xl bg-rose-50 dark:bg-rose-950/40 p-3"><p className="text-xs text-rose-700 dark:text-rose-300 flex items-center gap-1"><Clock3 size={13} /> Stale</p><p className="metric text-2xl mt-1">{stale}</p></div>
           <div className="rounded-xl bg-amber-50 dark:bg-amber-950/40 p-3"><p className="text-xs text-amber-700 dark:text-amber-300 flex items-center gap-1"><AlertTriangle size={13} /> Incomplete / unknown</p><p className="metric text-2xl mt-1">{incomplete}</p></div>
         </div>
-        {data.items.length > 0 ? <div className="mt-3 overflow-x-auto">
+        {visibleItems.length > 0 ? <div className="mt-3 overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="table-head"><th>Patient</th><th>Feed status</th><th>Last observation</th><th>Source</th><th>Missing fields</th></tr></thead>
-            <tbody>{data.items.slice(0, 8).map((item) => <tr className="table-row" key={item.patient_id}>
+            <tbody>{visibleItems.slice(0, 8).map((item) => <tr className="table-row" key={item.patient_id}>
               <td className="px-3 py-3 font-semibold">{item.patient_id}</td>
               <td className="px-3 py-3"><span className={`rounded-md px-2 py-1 text-[10px] uppercase tracking-wider font-bold ${item.status === 'fresh' ? 'bg-teal-50 text-teal-700' : item.status === 'stale' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700'}`}>{item.status}</span></td>
               <td className="px-3 py-3 text-slate-500">{ageLabel(item.age_seconds)}</td>
-              <td className="px-3 py-3 text-slate-500">{item.missing_fields.length ? item.missing_fields.join(', ') : '—'}</td>
+              <td className="px-3 py-3 text-slate-500">{item.source_system}{item.source_mode==='historical_replay'?' · replay':''}</td><td className="px-3 py-3 text-slate-500">{item.missing_fields.length ? item.missing_fields.join(', ') : '—'}</td>
             </tr>)}</tbody>
           </table>
         </div> : <p className="text-sm text-slate-500 mt-4">No persisted observations in the backend history window yet.</p>}
