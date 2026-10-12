@@ -4,18 +4,22 @@ import { ExplanationPanel } from '../components/risk/ExplanationPanel.tsx';
 import { VitalLine } from '../components/charts/Vitals.tsx';
 import { EventTimeline, buildTimeline } from '../components/patients/Timeline.tsx';
 import { CHART_COLORS } from '../theme/tokens.ts';
-import { demoDataService } from '../services/demoDataService.ts';
 import { useSimulation } from '../store/useSimulation.ts';
 import { formatTimeAgo } from '../utils/format.ts';
 export function ExplainCard({ patientId }: { patientId: string }) {
-  const { latest } = useSimulation();
+  const { latest, risks } = useSimulation();
   const v = latest[patientId];
-  if (!v) return null;
-  const factors = demoDataService.factors(patientId).map((f, i) => {
-    if (i === 0) return { ...f, currentValue: `${Math.round(v.spo2)}%`, trend: 'Downward in window' };
-    if (i === 1) return { ...f, currentValue: `${Math.round(v.heartRate)} bpm`, trend: 'Upward in window' };
-    return f;
-  });
+  const r = risks[patientId];
+  if (!v || !r) return null;
+  const factors = (r.factors ?? []).map((f) => ({
+    patientId,
+    name: f.feature,
+    contribution: f.direction === 'increases-risk' ? 1 : -1,
+    direction: f.direction,
+    currentValue: String(f.observedValue),
+    trend: 'Backend model contribution',
+    description: f.explanation,
+  }));
   return (
     <div className="mt-4">
       <SectionCard eyebrow="Explainability" title="Why is the AI risk signal elevated?" hint="Ranked signal contributions" label="AI explanation">

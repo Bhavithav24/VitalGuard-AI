@@ -18,7 +18,7 @@ def scoped_client(tmp_path, monkeypatch):
     monkeypatch.setenv("VITALGUARD_AUTH_SECRET", "test-only-secret-that-is-at-least-32-chars")
     monkeypatch.setenv(
         "VITALGUARD_AUTH_USERS_JSON",
-        '[{"username":"scoped","password_hash":"%s","role":"operator","enabled":true,"patient_prefixes":["DEMO-TEAM-A-"]}]'
+        '[{"username":"scoped","password_hash":"%s","role":"clinician","enabled":true,"patient_prefixes":["DEMO-TEAM-A-"]}]'
         % HASH,
     )
     monkeypatch.delenv("VITALGUARD_AUTH_USERNAME", raising=False)

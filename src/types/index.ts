@@ -34,6 +34,7 @@ export interface RiskSignal {
   trajectory: number[];
   trajectoryLabels: string[];
   updatedAt: string;
+  factors?: Array<{ feature: string; observedValue: number; direction: "increases-risk" | "decreases-risk"; explanation: string }>;
 }
 
 export interface RiskFactor {
@@ -47,7 +48,7 @@ export interface RiskFactor {
 }
 
 export type AlertSeverity = 'critical' | 'high' | 'moderate' | 'info';
-export type AlertStatus = 'open' | 'acknowledged' | 'resolved';
+export type AlertStatus = 'open' | 'acknowledged' | 'assigned' | 'resolved';
 
 export interface AlertItem {
   id: string;

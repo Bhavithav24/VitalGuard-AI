@@ -23,13 +23,18 @@ def test_alert_creation_is_idempotent(client):
     assert response.status_code == 200
     assert response.json()["count"] == 1
 
-def test_acknowledge_resolve_and_audit(client):
+def test_acknowledge_assign_resolve_and_audit(client):
     alert = seed_alert()
     alert_id = alert["id"]
     ack = client.post(f"/api/v1/alerts/{alert_id}/acknowledge", json={"actor": "demo-nurse"})
     assert ack.status_code == 200
     assert ack.json()["item"]["status"] == "acknowledged"
-    assert ack.json()["item"]["acknowledged_by"] == "demo-operator"
+    assert ack.json()["item"]["acknowledged_by"] == "demo-clinician"
+
+    assigned = client.post(f"/api/v1/alerts/{alert_id}/assign", json={"actor": "demo-nurse"})
+    assert assigned.status_code == 200
+    assert assigned.json()["item"]["status"] == "assigned"
+    assert assigned.json()["item"]["assigned_to"] == "demo-nurse"
 
     resolved = client.post(f"/api/v1/alerts/{alert_id}/resolve", json={"actor": "demo-nurse"})
     assert resolved.status_code == 200
@@ -38,8 +43,8 @@ def test_acknowledge_resolve_and_audit(client):
     audit = client.get(f"/api/v1/alerts/{alert_id}/audit")
     assert audit.status_code == 200
     actions = [item["action"] for item in audit.json()["items"]]
-    assert actions == ["created", "acknowledged", "resolved"]
+    assert actions == ["created", "acknowledge", "assign", "resolve"]
 
 def test_unknown_alert_returns_404(client):
-    response = client.post("/api/v1/alerts/99999/resolve", json={"actor": "demo-operator"})
+    response = client.post("/api/v1/alerts/99999/resolve", json={"actor": "demo-clinician"})
     assert response.status_code == 404

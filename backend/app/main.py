@@ -14,7 +14,6 @@ from .validation_diagnostics import evaluate_synthetic_calibration_and_subgroups
 from .explanation_validation import validate_additive_explanation
 from .news2 import score_news2
 from .schemas import NEWS2Input, RiskPrediction, VitalInput
-from .simulator_routes import router as simulator_router
 from .timeline_routes import router as timeline_router
 from .trend_routes import router as trend_router
 from .alert_routes import router as alert_router
@@ -35,10 +34,9 @@ async def lifespan(_app: FastAPI):
         await hub.stop()
 
 app = FastAPI(title="VitalGuard AI Risk Engine", version="0.8.0",
-    description="Synthetic demo risk API. Not clinically validated and not for clinical use.", lifespan=lifespan)
+    description="VitalGuard AI clinical monitoring prototype API. No live clinical source is bundled; only authorized ingestion and explicit historical replay are accepted.", lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(ingestion_router)
-app.include_router(simulator_router)
 app.include_router(alert_router)
 app.include_router(timeline_router)
 app.include_router(trend_router)
@@ -82,7 +80,7 @@ async def add_security_headers(request: Request, call_next):
 async def _publish_observation(patient_id: str, values: dict, result: RiskPrediction, saved: dict) -> None:
     await hub.broadcast({"type": "observation.created", "event_id": saved["id"],
         "patient_id": patient_id, "created_at": saved["created_at"], "observation": values,
-        "prediction": result.model_dump(), "demo_only": True})
+        "prediction": result.model_dump(), "demo_only": False})
 
 def _maybe_create_alert(patient_id: str, score: int, level: str, observation_id: int, values: dict):
     if score < 65:
@@ -123,7 +121,7 @@ def operational_readiness(principal: dict = Depends(authenticate_principal)):
         "checks": {
             "api": "ok",
             "database": database_status,
-            "operator_auth_configured": auth_configured,
+            "auth_configured": auth_configured,
             "model_loaded": True,
             "websocket_transport": hub.transport,
         },
@@ -132,14 +130,14 @@ def operational_readiness(principal: dict = Depends(authenticate_principal)):
         "demo_only": True,
         "clinically_validated": False,
         "notes": [
-            "Synthetic demo only; no clinical-use readiness is implied.",
+            "Backend-authoritative data; no clinical-use readiness is implied.",
             "Real-time transport uses shared Redis/Valkey Pub/Sub when REDIS_URL is configured; REST history remains the recovery path.",
         ],
     }
 
 
 @app.get("/api/v1/ops/metrics")
-def operational_metrics(principal: dict = Depends(require_roles("admin", "operator"))):
+def operational_metrics(principal: dict = Depends(require_roles("admin", "clinician"))):
     """Return bounded-cardinality, process-local metrics without request data."""
     with _metrics_lock:
         count = _request_count
@@ -178,7 +176,7 @@ def model_info(principal: dict = Depends(authenticate_principal)):
         "training_data": "generated synthetic observations only", "demo_only": True, "clinically_validated": False}
 
 @app.post("/api/v1/scores/news2")
-def calculate_news2(payload: NEWS2Input, principal: dict = Depends(require_roles("admin", "operator"))):
+def calculate_news2(payload: NEWS2Input, principal: dict = Depends(require_roles("admin", "clinician"))):
     """Calculate parameter points for a fictional NEWS2 example; not clinical guidance."""
     return score_news2(payload.model_dump(exclude={"patient_id", "scale2_authorized"}))
 
@@ -192,7 +190,7 @@ def model_validation_diagnostics(principal: dict = Depends(authenticate_principa
     return evaluate_synthetic_calibration_and_subgroups()
 
 @app.post("/api/v1/risk/predict", response_model=RiskPrediction)
-async def predict(payload: VitalInput, principal: dict = Depends(require_roles("admin", "operator"))):
+async def predict(payload: VitalInput, principal: dict = Depends(require_roles("admin", "clinician"))):
     require_patient_access(payload.patient_id, principal)
     values = payload.model_dump(exclude={"patient_id"})
     probability = predict_probability(values)
@@ -209,7 +207,7 @@ async def predict(payload: VitalInput, principal: dict = Depends(require_roles("
     return response
 
 @app.post("/api/v1/risk/explain")
-def explain_risk(payload: VitalInput, principal: dict = Depends(require_roles("admin", "operator", "viewer"))):
+def explain_risk(payload: VitalInput, principal: dict = Depends(require_roles("admin", "clinician", "nurse"))):
     require_patient_access(payload.patient_id, principal)
     values = payload.model_dump(exclude={"patient_id"})
     return {"patient_id": payload.patient_id, "model_version": MODEL_VERSION,

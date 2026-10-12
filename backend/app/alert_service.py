@@ -1,128 +1,67 @@
-"""Persistence helpers for the synthetic demo alert workflow."""
+"""Server-authoritative alert lifecycle and audit persistence."""
 from __future__ import annotations
 import json
-from typing import Any
-from datetime import timezone
-from sqlalchemy import insert, select, update, desc, or_
+from datetime import datetime,timezone
+from sqlalchemy import desc,insert,or_,select,update
 from sqlalchemy.exc import IntegrityError
 from .storage import _engine
-from .storage_schema import alerts, audit_events
-
-VALID_STATUSES = {"open", "acknowledged", "resolved"}
-
-
-def _serialize(row: Any) -> dict:
-    item = dict(row)
-    for key in ("created_at", "acknowledged_at", "resolved_at"):
-        if item.get(key) is not None and hasattr(item[key], "isoformat"):
-            value = item[key]
-            if getattr(value, "tzinfo", None) is None:
-                value = value.replace(tzinfo=timezone.utc)
-            item[key] = value.isoformat()
-    item["details"] = json.loads(item.pop("details_json"))
-    return item
-
-
-def _audit(connection, entity_id: str, action: str, actor: str, details: dict) -> None:
-    connection.execute(insert(audit_events).values(
-        entity_type="alert", entity_id=entity_id, action=action,
-        actor=actor, details_json=json.dumps(details, separators=(",", ":")),
-    ))
-
-
-def create_alert(*, patient_id: str, event_key: str, severity: str, title: str, details: dict) -> dict | None:
-    """Create one alert per source event; duplicate event keys are ignored."""
-    engine = _engine()
+from .storage_schema import alerts,audit_events
+def _serialize(row):
+    item=dict(row)
+    for k in ("created_at","acknowledged_at","assigned_at","resolved_at"):
+        if item.get(k) is not None and hasattr(item[k],"isoformat"):item[k]=item[k].isoformat()
+    item["details"]=json.loads(item.pop("details_json"));return item
+def _audit(c,eid,action,actor,details):c.execute(insert(audit_events).values(entity_type="alert",entity_id=str(eid),action=action,actor=actor,details_json=json.dumps(details or {},separators=(",",":"))))
+def create_alert(*,patient_id,event_key,severity,title,details):
+    engine=_engine()
     try:
-        with engine.begin() as connection:
-            existing = connection.execute(select(alerts).where(alerts.c.event_key == event_key)).mappings().first()
-            if existing:
-                return _serialize(existing)
-            result = connection.execute(insert(alerts).values(
-                patient_id=patient_id, event_key=event_key, severity=severity,
-                status="open", title=title,
-                details_json=json.dumps(details, separators=(",", ":")),
-            ))
-            row = connection.execute(select(alerts).where(alerts.c.id == result.inserted_primary_key[0])).mappings().one()
-            _audit(connection, str(row["id"]), "created", "demo-system", {"severity": severity, "event_key": event_key})
-            return _serialize(row)
+        with engine.begin() as c:
+            existing=c.execute(select(alerts).where(alerts.c.event_key==event_key)).mappings().first()
+            if existing:return _serialize(existing)
+            r=c.execute(insert(alerts).values(patient_id=patient_id,event_key=event_key,severity=severity,status="open",title=title,details_json=json.dumps(details,separators=(",",":"))));row=c.execute(select(alerts).where(alerts.c.id==r.inserted_primary_key[0])).mappings().one();_audit(c,row["id"],"created","system",{"severity":severity});return _serialize(row)
     except IntegrityError:
-        # A concurrent request may win the unique event_key insert.
-        with engine.connect() as connection:
-            row = connection.execute(select(alerts).where(alerts.c.event_key == event_key)).mappings().first()
-            return _serialize(row) if row else None
-    finally:
-        engine.dispose()
-
-
-def list_alerts(status: str | None = None, patient_id: str | None = None, limit: int = 50, patient_prefixes: list[str] | None = None) -> list[dict]:
-    engine = _engine()
+        with engine.connect() as c:row=c.execute(select(alerts).where(alerts.c.event_key==event_key)).mappings().first()
+        return _serialize(row) if row else None
+    finally:engine.dispose()
+def list_alerts(status=None,patient_id=None,limit=50,patient_prefixes=None):
+    engine=_engine()
     try:
-        query = select(alerts)
-        if status:
-            query = query.where(alerts.c.status == status)
-        if patient_id:
-            query = query.where(alerts.c.patient_id == patient_id)
+        q=select(alerts)
+        if status:q=q.where(alerts.c.status==status)
+        if patient_id:q=q.where(alerts.c.patient_id==patient_id)
         elif patient_prefixes is not None:
-            if not patient_prefixes:
-                return []
-            query = query.where(or_(*[alerts.c.patient_id.startswith(prefix, autoescape=True) for prefix in patient_prefixes]))
-        query = query.order_by(desc(alerts.c.id)).limit(limit)
-        with engine.connect() as connection:
-            return [_serialize(row) for row in connection.execute(query).mappings().all()]
-    finally:
-        engine.dispose()
-
-
-def get_alert(alert_id: int) -> dict | None:
-    engine = _engine()
+            if not patient_prefixes:return []
+            q=q.where(or_(*[alerts.c.patient_id.startswith(p,autoescape=True) for p in patient_prefixes]))
+        with engine.connect() as c:return [_serialize(r) for r in c.execute(q.order_by(desc(alerts.c.id)).limit(limit)).mappings().all()]
+    finally:engine.dispose()
+def get_alert(alert_id):
+    engine=_engine()
     try:
-        with engine.connect() as connection:
-            row = connection.execute(select(alerts).where(alerts.c.id == alert_id)).mappings().first()
-            return _serialize(row) if row else None
-    finally:
-        engine.dispose()
-
-
-def transition_alert(alert_id: int, action: str, actor: str) -> dict | None:
-    if action not in {"acknowledge", "resolve"}:
-        raise ValueError("Unsupported alert action")
-    engine = _engine()
+        with engine.connect() as c:r=c.execute(select(alerts).where(alerts.c.id==alert_id)).mappings().first()
+        return _serialize(r) if r else None
+    finally:engine.dispose()
+def transition_alert(alert_id,action,actor,assignee=None):
+    transitions={"acknowledge":("open","acknowledged"),"assign":("acknowledged","assigned"),"resolve":("assigned","resolved")}
+    if action not in transitions:raise ValueError("Unsupported alert action")
+    old,new=transitions[action];now=datetime.now(timezone.utc);engine=_engine()
     try:
-        with engine.begin() as connection:
-            row = connection.execute(select(alerts).where(alerts.c.id == alert_id)).mappings().first()
-            if not row:
-                return None
-            if row["status"] == "resolved":
-                return _serialize(row)
-            if action == "acknowledge" and row["status"] == "open":
-                connection.execute(update(alerts).where(alerts.c.id == alert_id).values(
-                    status="acknowledged", acknowledged_by=actor))
-                _audit(connection, str(alert_id), "acknowledged", actor, {})
-            elif action == "resolve":
-                connection.execute(update(alerts).where(alerts.c.id == alert_id).values(status="resolved"))
-                _audit(connection, str(alert_id), "resolved", actor, {})
-            updated = connection.execute(select(alerts).where(alerts.c.id == alert_id)).mappings().one()
-            return _serialize(updated)
-    finally:
-        engine.dispose()
-
-
-def list_alert_audit(alert_id: int) -> list[dict]:
-    engine = _engine()
+        with engine.begin() as c:
+            row=c.execute(select(alerts).where(alerts.c.id==alert_id)).mappings().first()
+            if not row:return None
+            if row["status"]!=old:return _serialize(row)
+            values={"status":new}
+            if action=="acknowledge":values.update(acknowledged_by=actor,acknowledged_at=now)
+            elif action=="assign":values.update(assigned_to=assignee or actor,assigned_at=now)
+            else:values.update(resolved_by=actor,resolved_at=now)
+            c.execute(update(alerts).where(alerts.c.id==alert_id).values(**values));_audit(c,alert_id,action,actor,{"assigned_to":assignee} if action=="assign" else {})
+            return _serialize(c.execute(select(alerts).where(alerts.c.id==alert_id)).mappings().one())
+    finally:engine.dispose()
+def list_alert_audit(alert_id):
+    engine=_engine()
     try:
-        with engine.connect() as connection:
-            rows = connection.execute(select(audit_events).where(
-                audit_events.c.entity_type == "alert",
-                audit_events.c.entity_id == str(alert_id)
-            ).order_by(audit_events.c.id)).mappings().all()
-        output = []
-        for row in rows:
-            item = dict(row)
-            item["details"] = json.loads(item.pop("details_json"))
-            if item.get("created_at") is not None and hasattr(item["created_at"], "isoformat"):
-                item["created_at"] = item["created_at"].isoformat()
-            output.append(item)
-        return output
-    finally:
-        engine.dispose()
+        with engine.connect() as c:rows=c.execute(select(audit_events).where(audit_events.c.entity_type=="alert",audit_events.c.entity_id==str(alert_id)).order_by(audit_events.c.id)).mappings().all()
+        out=[]
+        for r in rows:
+            x=dict(r);x["details"]=json.loads(x.pop("details_json"));x["created_at"]=x["created_at"].isoformat();out.append(x)
+        return out
+    finally:engine.dispose()

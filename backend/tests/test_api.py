@@ -8,12 +8,12 @@ from app.main import app
 def client(tmp_path, monkeypatch):
     # Isolate each test so no local or deployed demo history leaks between tests.
     monkeypatch.setenv("VITALGUARD_DB_PATH", str(tmp_path / "test.sqlite3"))
-    monkeypatch.setenv("VITALGUARD_AUTH_USERNAME", "demo-operator")
+    monkeypatch.setenv("VITALGUARD_AUTH_USERNAME", "demo-clinician")
     monkeypatch.setenv("VITALGUARD_AUTH_PASSWORD", "a-long-demo-password")
     monkeypatch.setenv("VITALGUARD_AUTH_SECRET", "test-only-secret-that-is-at-least-32-chars")
     with TestClient(app) as test_client:
         login = test_client.post("/api/v1/auth/login", json={
-            "username": "demo-operator", "password": "a-long-demo-password"
+            "username": "demo-clinician", "password": "a-long-demo-password"
         })
         assert login.status_code == 200
         test_client.headers.update({"Authorization": f"Bearer {login.json()['access_token']}"})
@@ -55,7 +55,7 @@ def test_prediction_is_saved_and_returns_observation_metadata(client):
     assert 0 <= body["risk_score"] <= 100
     assert body["risk_level"] in {"low", "moderate", "high", "critical"}
     assert 0 <= body["model_probability"] <= 1
-    assert body["demo_only"] is True
+    assert body["demo_only"] is False
     assert isinstance(body["factors"], list)
     assert body["observation_id"] > 0
     assert body["created_at"]
@@ -149,11 +149,11 @@ def test_auth_login_fails_closed_when_not_configured(client, monkeypatch):
 
 
 def test_auth_login_and_identity_round_trip(client, monkeypatch):
-    monkeypatch.setenv("VITALGUARD_AUTH_USERNAME", "demo-operator")
+    monkeypatch.setenv("VITALGUARD_AUTH_USERNAME", "demo-clinician")
     monkeypatch.setenv("VITALGUARD_AUTH_PASSWORD", "a-long-demo-password")
     monkeypatch.setenv("VITALGUARD_AUTH_SECRET", "test-only-secret-that-is-at-least-32-chars")
     login = client.post("/api/v1/auth/login", json={
-        "username": "demo-operator", "password": "a-long-demo-password"
+        "username": "demo-clinician", "password": "a-long-demo-password"
     })
     assert login.status_code == 200
     body = login.json()
@@ -163,15 +163,15 @@ def test_auth_login_and_identity_round_trip(client, monkeypatch):
         "Authorization": f"Bearer {body['access_token']}"
     })
     assert identity.status_code == 200
-    assert identity.json() == {"subject": "demo-operator", "role": "admin", "authenticated": True}
+    assert identity.json() == {"subject": "demo-clinician", "role": "admin", "authenticated": True}
 
 
 def test_auth_rejects_invalid_credentials_and_tokens(client, monkeypatch):
-    monkeypatch.setenv("VITALGUARD_AUTH_USERNAME", "demo-operator")
+    monkeypatch.setenv("VITALGUARD_AUTH_USERNAME", "demo-clinician")
     monkeypatch.setenv("VITALGUARD_AUTH_PASSWORD", "a-long-demo-password")
     monkeypatch.setenv("VITALGUARD_AUTH_SECRET", "test-only-secret-that-is-at-least-32-chars")
     bad_login = client.post("/api/v1/auth/login", json={
-        "username": "demo-operator", "password": "wrong-password"
+        "username": "demo-clinician", "password": "wrong-password"
     })
     assert bad_login.status_code == 401
     client.headers.pop("Authorization", None)
@@ -182,11 +182,11 @@ def test_auth_rejects_invalid_credentials_and_tokens(client, monkeypatch):
 
 
 def test_auth_login_rejects_unknown_fields(client, monkeypatch):
-    monkeypatch.setenv("VITALGUARD_AUTH_USERNAME", "demo-operator")
+    monkeypatch.setenv("VITALGUARD_AUTH_USERNAME", "demo-clinician")
     monkeypatch.setenv("VITALGUARD_AUTH_PASSWORD", "a-long-demo-password")
     monkeypatch.setenv("VITALGUARD_AUTH_SECRET", "test-only-secret-that-is-at-least-32-chars")
     response = client.post("/api/v1/auth/login", json={
-        "username": "demo-operator", "password": "a-long-demo-password", "role": "admin"
+        "username": "demo-clinician", "password": "a-long-demo-password", "role": "admin"
     })
     assert response.status_code == 422
 
@@ -201,7 +201,7 @@ def test_protected_routes_reject_requests_without_bearer_token(client):
         ("get", "/api/v1/patients/DEMO-001/timeline", {}),
         ("get", "/api/v1/observations/trends?patient_id=DEMO-001", {}),
         ("post", "/api/v1/risk/predict", {"json": valid_payload()}),
-        ("post", "/api/v1/demo/observations", {"json": {"scenario": "stable", "step": 0}}),
+        ("post", "/api/v1/ingestion/batch", {"json": {"records": []}}),
     ]:
         response = getattr(client, method)(path, headers={}, **kwargs)
         assert response.status_code == 401, f"{method.upper()} {path}: {response.status_code}"
@@ -213,10 +213,10 @@ def test_alert_audit_actor_comes_from_authenticated_identity(client):
     assert response.status_code == 200
 
 
-def test_role_authorization_rejects_viewer_for_operator_action(client, monkeypatch):
-    monkeypatch.setenv("VITALGUARD_AUTH_ROLE", "viewer")
+def test_role_authorization_rejects_nurse_for_clinician_action(client, monkeypatch):
+    monkeypatch.setenv("VITALGUARD_AUTH_ROLE", "nurse")
     login = client.post("/api/v1/auth/login", json={
-        "username": "demo-operator", "password": "a-long-demo-password"
+        "username": "demo-clinician", "password": "a-long-demo-password"
     })
     assert login.status_code == 200
     token = login.json()["access_token"]
@@ -224,13 +224,13 @@ def test_role_authorization_rejects_viewer_for_operator_action(client, monkeypat
     # confirms the role claim is carried consistently for authorization layers.
     identity = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert identity.status_code == 200
-    assert identity.json()["role"] == "viewer"
+    assert identity.json()["role"] == "nurse"
 
 
-def test_viewer_cannot_write_prediction(client, monkeypatch):
-    monkeypatch.setenv("VITALGUARD_AUTH_ROLE", "viewer")
+def test_nurse_cannot_write_prediction(client, monkeypatch):
+    monkeypatch.setenv("VITALGUARD_AUTH_ROLE", "nurse")
     login = client.post("/api/v1/auth/login", json={
-        "username": "demo-operator", "password": "a-long-demo-password"
+        "username": "demo-clinician", "password": "a-long-demo-password"
     })
     assert login.status_code == 200
     response = client.post(
@@ -241,10 +241,10 @@ def test_viewer_cannot_write_prediction(client, monkeypatch):
     assert response.status_code == 403
 
 
-def test_viewer_can_read_observations(client, monkeypatch):
-    monkeypatch.setenv("VITALGUARD_AUTH_ROLE", "viewer")
+def test_nurse_can_read_observations(client, monkeypatch):
+    monkeypatch.setenv("VITALGUARD_AUTH_ROLE", "nurse")
     login = client.post("/api/v1/auth/login", json={
-        "username": "demo-operator", "password": "a-long-demo-password"
+        "username": "demo-clinician", "password": "a-long-demo-password"
     })
     assert login.status_code == 200
     response = client.get(
@@ -261,7 +261,7 @@ def test_password_hash_authentication(client, monkeypatch):
     )
     monkeypatch.delenv("VITALGUARD_AUTH_PASSWORD", raising=False)
     login = client.post("/api/v1/auth/login", json={
-        "username": "demo-operator", "password": "VitalGuardDemo2026!"
+        "username": "demo-clinician", "password": "VitalGuardDemo2026!"
     })
     assert login.status_code == 200
     assert login.json()["role"] == "admin"
@@ -274,7 +274,7 @@ def test_auth_requires_bearer_token(client):
 
 def test_logout_revokes_access_token(client):
     login = client.post("/api/v1/auth/login", json={
-        "username": "demo-operator", "password": "a-long-demo-password"
+        "username": "demo-clinician", "password": "a-long-demo-password"
     })
     token = login.json()["access_token"]
     logout = client.post("/api/v1/auth/logout", headers={"Authorization": f"Bearer {token}"})
@@ -288,7 +288,7 @@ def test_role_permissions_endpoint_reports_current_role(client):
     assert response.status_code == 200
     body = response.json()
     assert body["current_role"] == "admin"
-    assert set(body["roles"]) == {"admin", "operator", "viewer"}
+    assert set(body["roles"]) == {"admin", "clinician", "nurse"}
 
 
 def test_shared_auth_state_fails_closed_when_redis_is_configured_but_unavailable(monkeypatch):
@@ -314,7 +314,7 @@ def test_websocket_ticket_is_single_use(client):
 def test_patient_scope_is_server_enforced(client, monkeypatch):
     monkeypatch.setenv(
         "VITALGUARD_AUTH_USERS_JSON",
-        '[{"username":"scoped","password_hash":"pbkdf2_sha256$210000$ODFe0akr--OGxcqsk4gygQ$aFcuHYhvwRSWs6cGLgrBAv931ThLm8x_knGymjIf7eY","role":"operator","enabled":true,"patient_prefixes":["DEMO-TEAM-A-"]}]',
+        '[{"username":"scoped","password_hash":"pbkdf2_sha256$210000$ODFe0akr--OGxcqsk4gygQ$aFcuHYhvwRSWs6cGLgrBAv931ThLm8x_knGymjIf7eY","role":"clinician","enabled":true,"patient_prefixes":["DEMO-TEAM-A-"]}]',
     )
     monkeypatch.setenv("VITALGUARD_AUTH_USERNAME", "")
     monkeypatch.setenv("VITALGUARD_AUTH_PASSWORD", "")

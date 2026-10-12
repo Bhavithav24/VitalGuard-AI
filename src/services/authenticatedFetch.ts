@@ -1,4 +1,4 @@
-const AUTH_STORAGE_KEY = 'vitalguard.operator.session';
+const AUTH_STORAGE_KEY = 'vitalguard.session';
 
 export function getOperatorAccessToken(): string | null {
   try {

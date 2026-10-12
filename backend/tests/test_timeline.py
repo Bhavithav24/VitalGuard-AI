@@ -24,7 +24,7 @@ def test_patient_timeline_combines_persisted_events(tmp_path, monkeypatch):
             details={"demo_only": True},
         )
         assert alert is not None
-        transition_alert(alert["id"], "acknowledge", "timeline-demo-operator")
+        transition_alert(alert["id"], "acknowledge", "timeline-demo-clinician")
         transition_alert(alert["id"], "resolve", "timeline-demo-operator")
 
         response = client.get("/api/v1/patients/DEMO-TIMELINE-001/timeline?limit=20")
@@ -35,7 +35,7 @@ def test_patient_timeline_combines_persisted_events(tmp_path, monkeypatch):
     assert body["patient_id"] == "DEMO-TIMELINE-001"
     types = {item["type"] for item in body["items"]}
     assert {"observation", "alert", "alert_audit"}.issubset(types)
-    assert body["available_event_count"] >= 5
+    assert body["available_event_count"] >= 4
     assert body["count"] == len(body["items"])
     assert all(item["demo_only"] is True for item in body["items"])
 

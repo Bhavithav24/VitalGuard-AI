@@ -16,10 +16,15 @@ _OBSERVATIONS = Table(
     Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
     Column("input_json", Text, nullable=False),
     Column("prediction_json", Text, nullable=False),
+    Column("observed_at", DateTime(timezone=True)),
+    Column("source_system", String(80)),
+    Column("source_mode", String(32)),
+    Column("source_event_id", String(128)),
+    Column("quality", String(32)),
     Column("model_version", String(128), nullable=False),
 )
-Index("idx_observations_patient_created", _OBSERVATIONS.c.patient_id,
-      _OBSERVATIONS.c.created_at.desc(), _OBSERVATIONS.c.id.desc())
+Index("idx_observations_patient_created", _OBSERVATIONS.c.patient_id, _OBSERVATIONS.c.created_at.desc(), _OBSERVATIONS.c.id.desc())
+Index("idx_observations_patient_observed", _OBSERVATIONS.c.patient_id, _OBSERVATIONS.c.observed_at.desc(), _OBSERVATIONS.c.id.desc())
 
 
 def _database_url() -> str:
@@ -44,9 +49,11 @@ def _engine() -> Engine:
 
 
 def _ensure_schema(engine: Engine) -> None:
-    # The database URL can be configured independently in tests and deployments.
-    # create_all is idempotent and ensures the selected database has our table.
     _METADATA.create_all(engine)
+    from .storage_schema import metadata as extended
+    from .ingestion_schema import metadata as ingestion
+    extended.create_all(engine)
+    ingestion.create_all(engine)
 
 
 def initialize_storage() -> None:
@@ -70,13 +77,18 @@ def database_health() -> dict[str, str]:
         engine.dispose()
 
 
-def save_observation(patient_id: str, inputs: dict[str, Any], prediction: dict[str, Any]) -> dict[str, Any]:
+def save_observation(patient_id: str, inputs: dict[str, Any], prediction: dict[str, Any], *, observed_at=None, source_system="api", source_mode="manual_api", source_event_id=None, quality="accepted") -> dict[str, Any]:
     engine = _engine()
     try:
         _ensure_schema(engine)
         with engine.begin() as connection:
             result = connection.execute(insert(_OBSERVATIONS).values(
                 patient_id=patient_id,
+                observed_at=observed_at,
+                source_system=source_system,
+                source_mode=source_mode,
+                source_event_id=source_event_id,
+                quality=quality,
                 input_json=json.dumps(inputs, separators=(",", ":")),
                 prediction_json=json.dumps(prediction, separators=(",", ":")),
                 model_version=prediction["model_version"],
@@ -113,5 +125,4 @@ def _serialize(row: Any) -> dict[str, Any]:
     created_at = row["created_at"]
     if hasattr(created_at, "isoformat"):
         created_at = created_at.isoformat()
-    return {"id": row["id"], "patient_id": row["patient_id"], "created_at": created_at,
-            "inputs": json.loads(row["input_json"]), "prediction": json.loads(row["prediction_json"]), "model_version": row["model_version"]}
+    return {"id": row["id"], "patient_id": row["patient_id"], "created_at": created_at, "observed_at": row.get("observed_at").isoformat() if row.get("observed_at") is not None else None, "source_system": row.get("source_system"), "source_mode": row.get("source_mode"), "source_event_id": row.get("source_event_id"), "quality": row.get("quality"), "inputs": json.loads(row["input_json"]), "prediction": json.loads(row["prediction_json"]), "model_version": row["model_version"]}

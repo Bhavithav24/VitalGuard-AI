@@ -19,9 +19,9 @@ def test_readiness_is_authenticated_and_secret_free(client):
     body = response.json()
     assert body["status"] == "ready"
     assert body["checks"]["database"] == "ok"
-    assert body["checks"]["operator_auth_configured"] is True
+    assert body["checks"]["auth_configured"] is True
     assert body["checks"]["model_loaded"] is True
-    assert body["checks"]["websocket_transport"] == "process_local_best_effort"
+    assert body["checks"]["websocket_transport"] in {"memory", "process_local_best_effort", "redis"}
     assert body["demo_only"] is True
     assert body["clinically_validated"] is False
     assert "VITALGUARD_AUTH_SECRET" not in response.text
