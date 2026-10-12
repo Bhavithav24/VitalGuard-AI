@@ -147,3 +147,4 @@ async def ingest_batch(batch: IngestionBatch, principal: dict = Depends(require_
         "demo_only": True,
         "disclaimer": "Synthetic demo ingestion only. No real patient data or clinical use is authorized.",
     }
+\n\n# Patient CRUD is mounted here until the central application router is refactored in a later phase.\nfrom .patient_routes import router as patient_router\nrouter.routes.extend(patient_router.routes)\n
