@@ -176,7 +176,7 @@ def model_info(principal: dict = Depends(authenticate_principal)):
         "training_data": "generated synthetic observations only", "demo_only": True, "clinically_validated": False}
 
 @app.post("/api/v1/scores/news2")
-def calculate_news2(payload: NEWS2Input, principal: dict = Depends(require_roles("admin", "operator"))):
+def calculate_news2(payload: NEWS2Input, principal: dict = Depends(require_roles("admin", "clinician"))):
     """Calculate parameter points for a fictional NEWS2 example; not clinical guidance."""
     return score_news2(payload.model_dump(exclude={"patient_id", "scale2_authorized"}))
 
