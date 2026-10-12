@@ -109,7 +109,7 @@ def update_patient(patient_id: str, payload: PatientUpdate, principal: Annotated
     finally: engine.dispose()
 
 @router.post("/{patient_id}/deactivate")
-def deactivate_patient(patient_id: str, principal: Annotated[dict[str, str], Depends(require_roles("admin", "operator"))]):
+def deactivate_patient(patient_id: str, principal: Annotated[dict[str, str], Depends(require_roles("admin", "clinician"))]):
     _require_scoped_patient(patient_id, principal); engine = _engine(); now = datetime.now(timezone.utc)
     try:
         with engine.begin() as connection:
