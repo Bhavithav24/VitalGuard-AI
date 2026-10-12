@@ -1,7 +1,6 @@
 export type RiskLevel = 'critical' | 'high' | 'moderate' | 'low' | 'unavailable';
 export type TrendDirection = 'worsening' | 'stable' | 'recovering';
-export type Scenario = 'stable' | 'worsening' | 'recovering';
-export type Ward = 'ICU' | 'Emergency' | 'General Ward' | 'Cardiology';
+export type Ward = 'ICU' | 'Emergency' | 'General Ward' | 'Cardiology' | string;
 
 export interface Patient {
   id: string;
@@ -9,7 +8,7 @@ export interface Patient {
   sex: 'M' | 'F';
   ward: Ward;
   bed: string;
-  scenario: Scenario;
+  scenario?: TrendDirection;
   updatedAt: string;
 }
 
@@ -34,9 +33,11 @@ export interface RiskSignal {
   trajectory: number[];
   trajectoryLabels: string[];
   updatedAt: string;
-  factors?: Array<{ feature: string; observedValue: number; direction: "increases-risk" | "decreases-risk"; explanation: string }>;
+  sourceMode: 'live' | 'historical_replay' | 'unknown';
   mlAvailable: boolean;
+  demoOnly: boolean;
   disclaimer?: string;
+  factors?: Array<{ feature: string; observedValue: number; direction: "increases-risk" | "decreases-risk"; explanation: string }>;
 }
 
 export interface RiskFactor {
@@ -65,11 +66,4 @@ export interface AlertItem {
   riskAfter?: number;
 }
 
-export interface SimulationState {
-  running: boolean;
-  tick: number;
-  speed: 'slow' | 'normal' | 'fast';
-  multiplier: 1 | 2;
-}
-
-export const DEMO_DISCLAIMER = 'Clinical observations are backend-sourced. Research model output is unavailable for live observations unless a clinically validated model is configured.';
+export const DEMO_DISCLAIMER = 'Historical replay records are synthetic research data and are not live clinical data.';
