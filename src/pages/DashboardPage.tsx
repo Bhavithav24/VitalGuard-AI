@@ -33,7 +33,7 @@ export function DashboardPage() {
     ];
   }, [risks]);
   const openAlerts = alerts.filter((a) => a.status === 'open').length;
-  const heroPatient = patients[0];
+  const heroPatient = patients.slice().sort((a, b) => (risks[b.id]?.score ?? -1) - (risks[a.id]?.score ?? -1))[0];
   const hero = heroPatient ? risks[heroPatient.id] : undefined;
   const heroVitals = heroPatient ? latest[heroPatient.id] : undefined;
   return (
