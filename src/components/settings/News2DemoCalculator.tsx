@@ -70,19 +70,19 @@ export function News2DemoCalculator() {
       if (!response.ok) throw new Error((body && 'detail' in body && body.detail) || `API returned ${response.status}`);
       setResult(body as ScoreResult);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not calculate the demo score. Check backend deployment.');
+      setError(caught instanceof Error ? caught.message : 'Could not calculate the score. Check backend deployment.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <section className="card p-4 sm:p-5" aria-labelledby="news2-demo-heading">
-      <p className="eyebrow flex items-center gap-1.5"><Calculator size={13} /> Parameter scoring demo</p>
+    <section className="card p-4 sm:p-5" aria-labelledby="news2-reference-heading">
+      <p className="eyebrow flex items-center gap-1.5"><Calculator size={13} /> NEWS2 reference calculation</p>
       <h2 id="news2-demo-heading" className="font-display text-xl font-extrabold mt-1">NEWS2 scoring workbench</h2>
-      <p className="text-xs text-slate-500 mt-1">Fictional adult observations only. Returns parameter points; does not issue clinical response advice.</p>
+      <p className="text-xs text-slate-500 mt-1">Reference calculation only. Returns parameter points; does not issue clinical response advice.</p>
       <form onSubmit={calculate} className="mt-4">
-        <label className="block text-xs font-semibold text-slate-500 mb-1.5" htmlFor="news2-patient">Demo label</label>
+        <label className="block text-xs font-semibold text-slate-500 mb-1.5" htmlFor="news2-patient">Reference patient label</label>
         <input id="news2-patient" className="input-field w-full" required maxLength={64} value={form.patient_id}
           onChange={(event) => setForm((current) => ({ ...current, patient_id: event.target.value }))} />
         <div className="mt-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -115,14 +115,14 @@ export function News2DemoCalculator() {
           <span><strong className="block text-amber-900 dark:text-amber-200">Scale 2 authorization assertion</strong><span className="text-xs text-amber-800 dark:text-amber-300">Only use Scale 2 under a qualified clinician's direction. This checkbox is not proof of authorization.</span></span>
         </label>}
         <div className="mt-4 flex flex-wrap gap-2">
-          <button className="btn-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle size={15} className="animate-spin" /> : <Calculator size={15} />}{loading ? 'Calculating…' : 'Calculate demo score'}</button>
+          <button className="btn-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle size={15} className="animate-spin" /> : <Calculator size={15} />}{loading ? 'Calculating…' : 'Calculate score'}</button>
           <button className="btn-secondary" type="button" onClick={() => { setForm(defaults); setResult(null); setError(''); }}>Reset</button>
         </div>
       </form>
       {error && <p role="alert" className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:bg-rose-950/40 dark:border-rose-900 dark:text-rose-200">{error}</p>}
       {result && <div className="mt-4 border-t border-slate-200 dark:border-slate-700 pt-4">
         <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3"><p className="text-xs text-slate-500">Total demo score</p><p className="metric text-3xl">{result.total_score}</p></div>
+          <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3"><p className="text-xs text-slate-500">Total score</p><p className="metric text-3xl">{result.total_score}</p></div>
           <div><p className="text-sm font-bold">{result.score_name}</p><p className="text-xs text-slate-500 mt-1">{result.score_version} · SpO₂ Scale {result.spo2_scale}</p></div>
         </div>
         <div className="mt-3 grid sm:grid-cols-2 gap-2">
@@ -132,7 +132,7 @@ export function News2DemoCalculator() {
         </div>
         <p className="mt-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-800 dark:text-amber-200 flex items-start gap-1.5"><AlertTriangle size={14} className="mt-0.5 shrink-0" />{result.disclaimer}</p>
       </div>}
-      <p className="text-[11px] text-slate-400 mt-3">Source: Royal College of Physicians NEWS2 chart. This prototype is not approved for clinical use; verify against the official chart and local policy.</p>
+      <p className="text-[11px] text-slate-400 mt-3">Source: Royal College of Physicians NEWS2 chart. Reference implementation only; verify against the official chart and local policy.</p>
     </section>
   );
 }
