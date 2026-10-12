@@ -9,8 +9,9 @@ import { RISK_STYLES } from '../../theme/tokens.ts';
 
 export function HeroPatient({ hero, vitals, patient }: { hero: RiskSignal; vitals: VitalReading; patient: Patient }) {
   const delta = hero.trajectory[hero.trajectory.length - 1] - hero.trajectory[0];
+  const deltaLabel = `${delta >= 0 ? '+' : ''}${delta}`;
   return (
-    <Link to="/patients/P-SIM-003" aria-label="Open priority patient P-SIM-003"
+    <Link to={`/patients/${patient.id}`} aria-label={`Open priority patient ${patient.id}`}
       className="card card-hover mt-5 p-0 block relative overflow-hidden text-left !border-0 text-white"
       style={{ background: 'linear-gradient(115deg,#0a1128 0%,#10233f 40%,#0c3542 72%,#0b4a4a 100%)' }}>
       <div className="absolute inset-0 vg-grid-bg opacity-50" aria-hidden />
@@ -30,7 +31,7 @@ export function HeroPatient({ hero, vitals, patient }: { hero: RiskSignal; vital
           </span>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-          <p className="font-display text-2xl sm:text-[28px] font-extrabold tracking-tight">P-SIM-003</p>
+          <p className="font-display text-2xl sm:text-[28px] font-extrabold tracking-tight">{patient.id}</p>
           <p className="text-sm text-slate-300 inline-flex items-center gap-1.5"><MapPin size={14} aria-hidden className="text-teal-300" />{patient.ward} · Bed {patient.bed} · Age {patient.age}</p>
           <RiskBadge level={hero.level} score={hero.score} />
         </div>
@@ -53,15 +54,15 @@ export function HeroPatient({ hero, vitals, patient }: { hero: RiskSignal; vital
           <div className="min-w-0 rounded-2xl bg-white/[0.05] border border-white/10 p-3">
             <div className="flex items-center justify-between px-1 pb-1">
               <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400">Trajectory · 2h window</p>
-              <p className="text-[11px] font-bold text-teal-300 tabular-nums inline-flex items-center gap-1"><ArrowUpRight size={13} aria-hidden />+{delta} pts</p>
+              <p className="text-[11px] font-bold text-teal-300 tabular-nums inline-flex items-center gap-1">{delta >= 0 ? <ArrowUpRight size={13} aria-hidden /> : <span aria-hidden>↓</span>}{deltaLabel} pts</p>
             </div>
             <RiskTrajectoryChart data={hero.trajectory} labels={hero.trajectoryLabels} height={180} id="vg-hero-fill" />
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur p-4 text-sm">
             <p className="eyebrow !text-[10px] !text-slate-400">Trajectory summary</p>
-            <p className="metric text-3xl mt-1 text-white">+{delta} <span className="text-sm font-bold text-slate-400">pts</span></p>
+            <p className="metric text-3xl mt-1 text-white">{deltaLabel} <span className="text-sm font-bold text-slate-400">pts</span></p>
             <p className="text-xs mt-1 text-slate-300">Direction: <strong className="capitalize">{hero.trend}</strong> · Window: 2h</p>
-            <p className={`text-xs mt-2 font-bold ${RISK_STYLES[hero.level].text} brightness-150`}>Review recommended.</p>
+            <p className={`text-xs mt-2 font-bold ${RISK_STYLES[hero.level].text} brightness-150`}>{hero.score >= 65 ? "Review recommended." : "Continue monitoring."}</p>
           </div>
         </div>
       </div>
