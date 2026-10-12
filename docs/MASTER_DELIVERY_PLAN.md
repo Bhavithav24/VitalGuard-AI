@@ -47,8 +47,8 @@ A phase is not done until its exit evidence is recorded in the repository. A pro
 
 ## Current baseline and known blockers
 
-- Frontend: https://vitalguard-ai-g215.onrender.com (Render branch `main`).
-- Backend: https://vitalguard-risk-api.onrender.com (Render branch `phase-3-risk-engine`).
+- Frontend: https://vitalguard-ai-bhavithav.onrender.com (Render branch `main`).
+- Backend: https://vitalguard-risk-api-bhavithav.onrender.com (Render branch `main`).
 - Source-level Phase 0 audit: [PHASE_0_AUDIT.md](PHASE_0_AUDIT.md).
 - Phase 1 requirements: [PHASE_1_REQUIREMENTS.md](PHASE_1_REQUIREMENTS.md).
 - Phase 2 architecture: [PHASE_2_ARCHITECTURE.md](PHASE_2_ARCHITECTURE.md).
@@ -57,9 +57,10 @@ A phase is not done until its exit evidence is recorded in the repository. A pro
 - Existing feature roadmap: [REALTIME_DEMO_ROADMAP.md](REALTIME_DEMO_ROADMAP.md).
 - Release runbook: [RENDER_RELEASE_RUNBOOK.md](RENDER_RELEASE_RUNBOOK.md).
 - The model is synthetic-data LogisticRegression and is not clinically validated.
-- Hosted PostgreSQL configuration, persistence-after-redeploy, and backup/restore evidence remain unverified.
-- Phase 3/4 code is merged to `main` and `phase-3-risk-engine`; backend CI passed and Render reports the authorization commit live. Full browser-to-live API verification is still pending, and operator auth environment variables must be configured privately.
-- The WebSocket event hub is in-process/single-instance; some frontend data remains synthetic fixture data.
+- Hosted PostgreSQL is configured and the application is actively persisting demo observations, but direct SQL verification through the hosted Render connector is blocked by the database's empty IP allowlist; backup/restore evidence is still pending.
+- Controlled demo telemetry creates four demo patient records and emits deterministic monitor-style observations through the durable ingestion path every 60 seconds when `VITALGUARD_DEMO_TELEMETRY_ENABLED=true`.
+- The WebSocket hub supports optional Redis/Valkey Pub/Sub and falls back to process-local delivery when Redis is not configured; REST history is the recovery path.
+- Current GitHub Actions runs are queued and therefore are not yet evidence of a green CI/E2E release gate.
 - No real patient data is authorized for the current public demo.
 
 ## Phase 2 status and verification
