@@ -41,6 +41,8 @@ async def ingest_batch(batch:IngestionBatch,principal:dict=Depends(require_roles
         patient=_get_patient(item.observation.patient_id)
         if patient is None or not patient["active"]:
             results.append({"index":index,"status":"rejected","errors":[{"field":"observation.patient_id","message":"Patient does not exist or is inactive"}]});continue
+        if item.source_mode=="historical_replay" and item.source_system not in {"synthetic-demo", "historical-replay"}:
+            results.append({"index":index,"status":"rejected","errors":[{"field":"source_system","message":"Historical replay must declare an approved replay source"}]});continue
         if item.source_mode=="live" and (not configured or not x_source_token or not hmac.compare_digest(x_source_token,configured)):
             results.append({"index":index,"status":"rejected","errors":[{"field":"source_mode","message":"Authorized live source is not configured"}]});continue
         values=item.observation.model_dump(exclude={"patient_id"});probability=predict_probability(values);score=round(probability*100)
