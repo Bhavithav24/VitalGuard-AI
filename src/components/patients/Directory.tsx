@@ -24,7 +24,7 @@ export function PatientRows({ slice, risks, latest }: {
             <td className="px-3 py-3.5">
               <RiskBadge level={r.level} score={r.score} />
               <div className="mt-1.5 h-1 w-20 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden" aria-hidden>
-                <div className="h-full rounded-full vg-bar-grow" style={{ width: `${r.score}%`, background: s.hex }} />
+                <div className="h-full rounded-full vg-bar-grow" style={{ width: `${r.score ?? 0}%`, background: s.hex }} />
               </div>
             </td>
             <td className="px-3 py-3.5 text-right font-bold tabular-nums">{r.news2}</td>
