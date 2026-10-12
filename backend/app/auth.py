@@ -36,6 +36,14 @@ _WS_TICKETS: dict[str, tuple[str, float]] = {}
 Role = Literal["admin", "clinician", "nurse"]
 _VALID_ROLES = {"admin", "clinician", "nurse"}
 
+# Demo deployment accounts. Production can disable these with
+# VITALGUARD_DISABLE_DEMO_DEFAULTS=true and provide managed credentials.
+_BUILTIN_DEMO_ACCOUNTS = [
+    {"username": "admin", "password": "", "password_hash": "pbkdf2_sha256$310000$PK1TOXou72BfqQa6x3cTSw$iVKEzxgDgL7zYDU4lxfqyHrG9vg3amZ6UbpyKIQb6PA", "role": "admin", "enabled": "true", "patient_prefixes": "*"},
+    {"username": "clinician", "password": "", "password_hash": "pbkdf2_sha256$310000$6tovcH7ECFRqRJW4KVFAHg$EkC2zyUZ5itim4qCRNo32uPZ3RQLb1iFxwBSuCXOfqQ", "role": "clinician", "enabled": "true", "patient_prefixes": "*"},
+    {"username": "nurse", "password": "", "password_hash": "pbkdf2_sha256$310000$Gxxc_Gnfnm7KgAey7v4nsA$HN6DDIgiEt6_ByLeCarlXU6Xep6KdOLyfaddxIoHy5Q", "role": "nurse", "enabled": "true", "patient_prefixes": "*"},
+]
+
 
 class LoginRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -116,9 +124,16 @@ def _accounts() -> list[dict[str, str]]:
                 "enabled": "true" if enabled else "false",
                 "patient_prefixes": ",".join(raw_prefixes),
             })
+        if os.getenv("VITALGUARD_DISABLE_DEMO_DEFAULTS", "").strip().lower() != "true":
+            configured_names = {item["username"] for item in accounts}
+            accounts.extend(item for item in _BUILTIN_DEMO_ACCOUNTS if item["username"] not in configured_names)
         return accounts
     username, password, password_hash, _, role = _credentials()
-    return [{"username": username, "password": password, "password_hash": password_hash, "role": role, "enabled": "true", "patient_prefixes": "*"}]
+    configured = [{"username": username, "password": password, "password_hash": password_hash, "role": role, "enabled": "true", "patient_prefixes": "*"}]
+    if os.getenv("VITALGUARD_DISABLE_DEMO_DEFAULTS", "").strip().lower() != "true":
+        configured_names = {item["username"] for item in configured}
+        configured.extend(item for item in _BUILTIN_DEMO_ACCOUNTS if item["username"] not in configured_names)
+    return configured
 
 
 def _serializer(secret: str) -> URLSafeTimedSerializer:
