@@ -30,17 +30,21 @@ DEMO_PATIENTS = [
     {"patient_id": "DEMO-004", "external_identifier": "VG-DEMO-004", "display_name": "Patient 04", "age": 31, "sex": "M", "unit": "Demo Ward B", "bed": "B-02"},
 ]
 
-def _ensure_demo_patients() -> None:
+def _ensure_demo_patients() -> set[str]:
+    """Create missing demo patients without overriding an intentional deactivation."""
     engine = _engine()
     try:
         now = datetime.now(timezone.utc)
+        active_ids: set[str] = set()
         with engine.begin() as connection:
             for patient in DEMO_PATIENTS:
                 existing = connection.execute(select(patients).where(patients.c.patient_id == patient["patient_id"])).mappings().first()
                 if existing is None:
                     connection.execute(patients.insert().values(**patient, active=True, created_at=now, updated_at=now))
-                elif not existing["active"]:
-                    connection.execute(patients.update().where(patients.c.patient_id == patient["patient_id"]).values(active=True, deactivated_at=None, updated_at=now))
+                    active_ids.add(patient["patient_id"])
+                elif existing["active"]:
+                    active_ids.add(patient["patient_id"])
+        return active_ids
     finally:
         engine.dispose()
 
@@ -66,13 +70,15 @@ def _vitals(profile: int, step: int, age: int) -> dict:
             "spo2_scale": 1, "scale2_authorized": False}
 
 async def emit_demo_tick() -> dict:
-    _ensure_demo_patients()
+    active_ids = _ensure_demo_patients()
     now = datetime.now(timezone.utc)
     observed_at = now.replace(second=0, microsecond=0)
     step = int(now.timestamp() // 60)
     emitted = []
     units = {"age": "years", "heart_rate": "bpm", "spo2": "percent", "systolic_bp": "mmHg", "diastolic_bp": "mmHg", "temperature": "degC", "respiratory_rate": "breaths/min"}
     for profile, patient in enumerate(DEMO_PATIENTS):
+        if patient["patient_id"] not in active_ids:
+            continue
         values = _vitals(profile, step, patient["age"])
         vital = VitalInput.model_validate(values)
         news2_result = score_news2(vital.model_dump())
@@ -102,7 +108,7 @@ async def emit_demo_tick() -> dict:
                 "observation": vital.model_dump(exclude={"patient_id"}), "prediction": response.model_dump(),
                 "source_system": "bedside-monitor-demo", "source_mode": "live",
             })
-    return {"status": "ok", "source_system": "bedside-monitor-demo", "source_mode": "live", "patients": len(DEMO_PATIENTS), "emitted": emitted}
+    return {"status": "ok", "source_system": "bedside-monitor-demo", "source_mode": "live", "patients": len(active_ids), "emitted": emitted}
 
 @router.post("/telemetry/tick")
 async def telemetry_tick(principal: dict = Depends(require_roles("admin"))):
