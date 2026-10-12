@@ -265,6 +265,11 @@ def _revoke(jti: str) -> None:
         raise HTTPException(status_code=503, detail="Shared authentication state is unavailable") from exc
 
 
+def _login_state_partition() -> str:
+    """Partition local rate-limit state by configured backend store without retaining secrets."""
+    identity = os.getenv("DATABASE_URL") or os.getenv("VITALGUARD_DB_PATH") or "default-database"
+    return hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16]
+
 def _check_login_rate_limit(client_key: str) -> None:
     client = _redis()
     if client is None:
@@ -338,7 +343,7 @@ def _clear_login_rate_limit(client_key: str) -> None:
 def login(request: Request, payload: LoginRequest) -> TokenResponse:
     _, _, _, secret, _ = _credentials()
     client_host = request.client.host if request.client else "unknown"
-    client_key = f"{client_host}:{payload.username.lower()}"
+    client_key = f"{client_host}:{payload.username.lower()}:{_login_state_partition()}"
     _check_login_rate_limit(client_key)
     account = next((item for item in _accounts() if hmac.compare_digest(payload.username, item["username"])), None)
     if account is None or account.get("enabled") != "true" or not _verify_password(payload.password, account):
