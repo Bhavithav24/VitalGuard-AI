@@ -12,6 +12,8 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("VITALGUARD_DB_PATH", str(tmp_path / "ingestion.sqlite3"))
     with TestClient(app) as test_client:
         authenticate_test_client(test_client)
+        created=test_client.post("/api/v1/patients",json={"patient_id":"DEMO-INGEST-001","external_identifier":"EXT-DEMO-INGEST-001","display_name":"Ingestion Test Patient","age":58,"sex":"M","unit":"Test","bed":"T-01"})
+        assert created.status_code == 201
         yield test_client
 
 
@@ -90,6 +92,15 @@ def test_batch_ingestion_rejects_invalid_source_or_observation_metadata(client, 
     assert response.status_code == 200
     assert response.json()["rejected"] == 1
     assert response.json()["items"][0]["status"] == "rejected"
+
+
+def test_batch_ingestion_creates_alert_for_high_risk_observation(client):
+    payload=item("high-risk-event",observation={**item()["observation"],"spo2":82,"heart_rate":145,"respiratory_rate":28})
+    response=client.post("/api/v1/ingestion/batch",json={"records":[payload]})
+    assert response.status_code==200
+    assert response.json()["accepted"]==1
+    alerts=client.get("/api/v1/alerts").json()["items"]
+    assert any(a["patient_id"]=="DEMO-INGEST-001" and a["severity"] in {"high","critical"} for a in alerts)
 
 
 def test_live_ingestion_requires_authorized_source_token(client, monkeypatch):
