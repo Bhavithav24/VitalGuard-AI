@@ -1,4 +1,4 @@
-"""Data freshness and completeness checks for synthetic demo observations."""
+"""Data freshness and completeness checks for persisted observations."""
 from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
@@ -25,8 +25,8 @@ def assess_observations(records: list[dict[str, Any]], *, stale_after_seconds: i
                         now: datetime | None = None) -> dict[str, Any]:
     """Return one quality summary per patient from observation history.
 
-    Uses only saved synthetic observations. The API caller supplies a bounded
-    history page; this function never interprets missing vitals as normal.
+    Uses only persisted observations supplied by the caller. Missing vitals are
+    explicitly classified and never interpreted as normal.
     """
     current = now or datetime.now(timezone.utc)
     if current.tzinfo is None:
@@ -61,14 +61,14 @@ def assess_observations(records: list[dict[str, Any]], *, stale_after_seconds: i
             "age_seconds": age_seconds,
             "status": status,
             "missing_fields": missing,
-            "demo_only": True,
+            "source_mode": record.get("source_mode") or "unknown",
+            "source_system": record.get("source_system") or "unknown",
         })
     patients.sort(key=lambda item: ({"stale": 0, "incomplete": 1, "unknown": 2, "fresh": 3}[item["status"]], item["patient_id"]))
     return {
         "items": patients,
         "count": len(patients),
         "stale_after_seconds": stale_after_seconds,
-        "source": "persisted synthetic observation history",
-        "demo_only": True,
-        "disclaimer": "Missing or stale data must never be interpreted as normal. Synthetic demo only.",
+        "source": "persisted observation history",
+        "disclaimer": "Missing or stale data must never be interpreted as normal. A live device connection is not inferred from freshness alone.",
     }
