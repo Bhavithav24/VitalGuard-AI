@@ -68,6 +68,7 @@ def _vitals(profile: int, step: int, age: int) -> dict:
 async def emit_demo_tick() -> dict:
     _ensure_demo_patients()
     now = datetime.now(timezone.utc)
+    observed_at = now.replace(second=0, microsecond=0)
     step = int(now.timestamp() // 60)
     emitted = []
     units = {"age": "years", "heart_rate": "bpm", "spo2": "percent", "systolic_bp": "mmHg", "diastolic_bp": "mmHg", "temperature": "degC", "respiratory_rate": "breaths/min"}
@@ -82,22 +83,22 @@ async def emit_demo_tick() -> dict:
             demo_only=True, ml_available=False,
             disclaimer="No clinically validated ML model is configured for live observations. This controlled demonstration source supplies monitor-style telemetry only.",
         )
-        event_id = f"demo-monitor-{step}-{patient['patient_id']}"
+        event_id = f"demo-monitor-v2-{step}-{patient['patient_id']}"
         payload = {"source_system": "bedside-monitor-demo", "source_mode": "live", "source_event_id": event_id,
-                   "observed_at": now.isoformat(), "observation": vital.model_dump(), "units": units}
+                   "observed_at": observed_at.isoformat(), "observation": vital.model_dump(), "units": units}
         payload_hash = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         persisted = persist_ingested_observation(
             source_system="bedside-monitor-demo", source_mode="live", source_event_id=event_id,
-            patient_id=patient["patient_id"], observed_at=now, units=units, payload_hash=payload_hash,
+            patient_id=patient["patient_id"], observed_at=observed_at, units=units, payload_hash=payload_hash,
             inputs=vital.model_dump(exclude={"patient_id"}), prediction=prediction.model_dump(),
         )
         if persisted["status"] in {"accepted", "duplicate"}:
             emitted.append({"patient_id": patient["patient_id"], "status": persisted["status"], "observation_id": persisted["observation_id"]})
         if persisted["status"] == "accepted":
-            response = prediction.model_copy(update={"observation_id": persisted["observation_id"], "created_at": now.isoformat()})
+            response = prediction.model_copy(update={"observation_id": persisted["observation_id"], "created_at": observed_at.isoformat()})
             await hub.broadcast({
                 "type": "observation.created", "event_id": persisted["observation_id"],
-                "patient_id": patient["patient_id"], "observed_at": now.isoformat(),
+                "patient_id": patient["patient_id"], "observed_at": observed_at.isoformat(),
                 "observation": vital.model_dump(exclude={"patient_id"}), "prediction": response.model_dump(),
                 "source_system": "bedside-monitor-demo", "source_mode": "live",
             })
