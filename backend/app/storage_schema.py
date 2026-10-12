@@ -3,7 +3,7 @@ from sqlalchemy import (
     Column, DateTime, Index, Integer, MetaData, String, Table, Text, func,
 )
 
-from sqlalchemy import Boolean\n\nmetadata = MetaData()
+from sqlalchemy import Boolean, UniqueConstraint\n\nmetadata = MetaData()
 
 patients = Table(
     "patients", metadata,
