@@ -29,7 +29,7 @@ def test_acknowledge_resolve_and_audit(client):
     ack = client.post(f"/api/v1/alerts/{alert_id}/acknowledge", json={"actor": "demo-nurse"})
     assert ack.status_code == 200
     assert ack.json()["item"]["status"] == "acknowledged"
-    assert ack.json()["item"]["acknowledged_by"] == "demo-operator"
+    assert ack.json()["item"]["acknowledged_by"] == "demo-clinician"
 
     resolved = client.post(f"/api/v1/alerts/{alert_id}/resolve", json={"actor": "demo-nurse"})
     assert resolved.status_code == 200
