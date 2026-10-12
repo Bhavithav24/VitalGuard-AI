@@ -3,6 +3,19 @@ import { RISK_STYLES, TREND_META } from '../../theme/tokens.ts';
 import { formatTimeAgo } from '../../utils/format.ts';
 
 export function RiskPanel({ risk, delta }: { risk: RiskSignal; delta?: number }) {
+  if (!risk.mlAvailable || risk.level === 'unavailable' || risk.score === null) {
+    return (
+      <div aria-label="ML risk unavailable">
+        <p className="eyebrow">ML risk</p>
+        <div className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-5">
+          <p className="text-lg font-bold text-slate-800 dark:text-slate-100">ML risk unavailable</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">No clinically validated model is configured for live observations.</p>
+          <p className="text-xs text-slate-400 mt-3">NEWS2 is shown separately when complete clinical inputs are available. No synthetic live risk score is substituted.</p>
+          <p className="text-[11px] text-slate-400 mt-3 tabular-nums">Updated {formatTimeAgo(risk.updatedAt)}</p>
+        </div>
+      </div>
+    );
+  }
   const s = RISK_STYLES[risk.level];
   const C = 2 * Math.PI * 60;
   const trend = TREND_META[risk.trend];
@@ -27,11 +40,11 @@ export function RiskPanel({ risk, delta }: { risk: RiskSignal; delta?: number })
           <p className={`font-display font-extrabold uppercase tracking-[0.14em] text-sm inline-flex items-center gap-2 ${s.text}`}>
             <span className={`h-2 w-2 rounded-full ${s.dot}`} aria-hidden />{risk.level}
           </p>
-          <p className="text-sm mt-2">Signal probability <strong className="tabular-nums">{Math.round(risk.probability * 100)}%</strong></p>
+          <p className="text-sm mt-2">Signal probability <strong className="tabular-nums">{Math.round((risk.probability ?? 0) * 100)}%</strong></p>
           <p className={`text-xs font-bold mt-1 ${trend.cls}`}>{trend.arrow} {trend.label}{delta !== undefined && delta !== 0 ? ` · ${delta > 0 ? '+' : ''}${delta} in window` : ''}</p>
           <p className="text-[11px] text-slate-400 mt-1 tabular-nums">Updated {formatTimeAgo(risk.updatedAt)}</p>
           <p className="mt-2.5 inline-block text-[10px] font-bold tracking-[0.08em] px-2 py-1 rounded-md bg-slate-900/[0.04] text-slate-500 border border-slate-200/80 dark:bg-white/[0.06] dark:text-slate-300 dark:border-white/10">
-            RESEARCH MODEL · REVIEW RECOMMENDED
+            RESEARCH REPLAY ONLY · NOT CLINICALLY VALIDATED
           </p>
         </div>
       </div>
@@ -39,7 +52,10 @@ export function RiskPanel({ risk, delta }: { risk: RiskSignal; delta?: number })
   );
 }
 
-export function News2Panel({ score, compact }: { score: number; compact?: boolean }) {
+export function News2Panel({ score, compact }: { score: number | null; compact?: boolean }) {
+  if (score === null || score === undefined) {
+    return <div aria-label="NEWS2 unavailable"><p className="eyebrow">NEWS2 · Clinical reference</p><p className="text-sm text-slate-500 mt-3">Not available because the latest observation did not include complete NEWS2 inputs.</p></div>;
+  }
   const band = score >= 7 ? 'High' : score >= 5 ? 'Medium' : score >= 1 ? 'Low' : 'No alert';
   const cls = score >= 7 ? 'text-rose-600 dark:text-rose-400' : score >= 5 ? 'text-orange-600 dark:text-orange-400' : 'text-teal-700 dark:text-teal-300';
   return (
