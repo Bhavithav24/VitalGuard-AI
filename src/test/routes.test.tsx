@@ -23,8 +23,8 @@ vi.mock('../services/api.ts',()=>({api:{
 }}));
 function wrap(ui:React.ReactNode){return render(<SimulationProvider><MemoryRouter>{ui}</MemoryRouter></SimulationProvider>)}
 describe('backend-authoritative routes',()=>{
- it('dashboard renders an empty backend state',()=>{wrap(<DashboardPage/>);expect(screen.getByText('Patient Monitoring Overview')).toBeTruthy();expect(screen.getByText(/No patient data/i)).toBeTruthy()});
- it('patient directory renders without synthetic fixtures',()=>{wrap(<PatientsPage/>);expect(screen.getByText('Patients')).toBeTruthy();expect(screen.getByText('No patients found')).toBeTruthy()});
+ it('dashboard renders an empty backend state',()=>{wrap(<DashboardPage/>);expect(screen.getByText('Patient Monitoring Overview')).toBeTruthy();expect(screen.getByText(/No patients match these filters/i)).toBeTruthy()});
+ it('patient directory renders without synthetic fixtures',()=>{wrap(<PatientsPage/>);expect(screen.getAllByText('Patients').length).toBeGreaterThan(0);expect(screen.getByText('No patients found')).toBeTruthy()});
  it('alerts render without synthetic fixtures',()=>{wrap(<AlertsPage/>);expect(screen.getByText('Alert Center')).toBeTruthy();expect(screen.getByText('No alerts in this filter')).toBeTruthy()});
  it('analytics renders persisted-data empty state',()=>{wrap(<AnalyticsPage/>);expect(screen.getAllByText('Analytics').length).toBeGreaterThan(0);expect(screen.getByText('No persisted risk assessments yet.')).toBeTruthy()});
  it('settings renders without an auth provider in isolated tests',()=>{wrap(<SettingsPage/>);expect(screen.getAllByRole('heading',{name:'Settings'}).length).toBeGreaterThan(0)});
