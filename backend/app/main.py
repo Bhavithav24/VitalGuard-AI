@@ -86,7 +86,7 @@ def _maybe_create_alert(patient_id: str, score: int, level: str, observation_id:
     if score < 65:
         return None
     return create_alert(patient_id=patient_id, event_key=f"observation:{observation_id}:elevated-risk",
-        severity="critical" if level == "critical" else "high", title=f"{level.title()} demo risk score",
+        severity="critical" if level == "critical" else "high", title=f"{level.title()} research risk signal",
         details={"observation_id": observation_id, "risk_score": score, "risk_level": level, "vitals": values, "demo_only": True})
 
 @app.get("/")
