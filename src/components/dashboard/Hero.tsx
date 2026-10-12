@@ -8,6 +8,7 @@ import { formatTimeAgo } from '../../utils/format.ts';
 import { RISK_STYLES } from '../../theme/tokens.ts';
 
 export function HeroPatient({ hero, vitals, patient }: { hero: RiskSignal; vitals: VitalReading; patient: Patient }) {
+  if (!hero.mlAvailable || hero.score === null || hero.level === 'unavailable' || hero.trajectory.length === 0) return null;
   const delta = hero.trajectory[hero.trajectory.length - 1] - hero.trajectory[0];
   const deltaLabel = `${delta >= 0 ? '+' : ''}${delta}`;
   return (
