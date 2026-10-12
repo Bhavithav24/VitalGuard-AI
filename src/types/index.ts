@@ -1,4 +1,4 @@
-export type RiskLevel = 'critical' | 'high' | 'moderate' | 'low';
+export type RiskLevel = 'critical' | 'high' | 'moderate' | 'low' | 'unavailable';
 export type TrendDirection = 'worsening' | 'stable' | 'recovering';
 export type Scenario = 'stable' | 'worsening' | 'recovering';
 export type Ward = 'ICU' | 'Emergency' | 'General Ward' | 'Cardiology';
@@ -26,15 +26,17 @@ export interface VitalReading {
 
 export interface RiskSignal {
   patientId: string;
-  score: number;
+  score: number | null;
   level: RiskLevel;
-  probability: number;
-  news2: number;
+  probability: number | null;
+  news2: number | null;
   trend: TrendDirection;
   trajectory: number[];
   trajectoryLabels: string[];
   updatedAt: string;
   factors?: Array<{ feature: string; observedValue: number; direction: "increases-risk" | "decreases-risk"; explanation: string }>;
+  mlAvailable: boolean;
+  disclaimer?: string;
 }
 
 export interface RiskFactor {
@@ -70,4 +72,4 @@ export interface SimulationState {
   multiplier: 1 | 2;
 }
 
-export const DEMO_DISCLAIMER = 'All patient data shown in Demo Mode is synthetic and intended only for software demonstration.';
+export const DEMO_DISCLAIMER = 'Clinical observations are backend-sourced. Research model output is unavailable for live observations unless a clinically validated model is configured.';
