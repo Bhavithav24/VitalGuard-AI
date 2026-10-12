@@ -190,33 +190,18 @@ def model_validation_diagnostics(principal: dict = Depends(authenticate_principa
     return evaluate_synthetic_calibration_and_subgroups()
 
 @app.post("/api/v1/risk/predict", response_model=RiskPrediction)
-async def predict(payload: VitalInput, principal: dict = Depends(require_roles("admin", "clinician"))):
-    require_patient_access(payload.patient_id, principal)
-    values = payload.model_dump(exclude={"patient_id"})
-    probability = predict_probability(values)
-    score = round(probability * 100)
-    level = risk_level(score)
-    result = RiskPrediction(patient_id=payload.patient_id, risk_score=score, risk_level=level,
-        model_probability=round(probability, 4), factors=explain(values), model_version=MODEL_VERSION, demo_only=True)
-    saved = save_observation(payload.patient_id, values, result.model_dump())
-    response = result.model_copy(update={"observation_id": saved["id"], "created_at": saved["created_at"]})
-    await _publish_observation(payload.patient_id, values, response, saved)
-    alert = _maybe_create_alert(payload.patient_id, score, level, saved["id"], values)
-    if alert:
-        await hub.broadcast({"type": "alert.created", "event_id": alert["id"], "alert": alert, "demo_only": True})
-    return response
+def predict(_payload: VitalInput, _principal: dict = Depends(require_roles("admin", "clinician"))):
+    raise HTTPException(
+        status_code=503,
+        detail="No clinically validated ML model is configured. Use authorized ingestion; NEWS2 is available separately when complete clinical inputs are supplied.",
+    )
 
 @app.post("/api/v1/risk/explain")
-def explain_risk(payload: VitalInput, principal: dict = Depends(require_roles("admin", "clinician", "nurse"))):
-    require_patient_access(payload.patient_id, principal)
-    values = payload.model_dump(exclude={"patient_id"})
-    return {"patient_id": payload.patient_id, "model_version": MODEL_VERSION,
-        "risk_score": round(predict_probability(values) * 100),
-        "contributions": coefficient_contributions(values),
-        "method": "standardized logistic-regression coefficient contributions",
-        "caveat": "These are model contributions, not causal explanations or clinical guidance.",
-        "reconstruction_check": validate_additive_explanation(values),
-        "demo_only": True}
+def explain_risk(_payload: VitalInput, _principal: dict = Depends(require_roles("admin", "clinician", "nurse"))):
+    raise HTTPException(
+        status_code=503,
+        detail="Model explanations are unavailable because no clinically validated ML model is configured.",
+    )
 
 @app.get("/api/v1/observations")
 def observation_history(patient_id: str | None = Query(default=None, min_length=1, max_length=64),
