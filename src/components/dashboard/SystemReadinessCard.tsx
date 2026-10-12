@@ -29,10 +29,10 @@ export function SystemReadinessCard() {
           <div>
             <p className="eyebrow flex items-center gap-2"><ServerCog size={13} aria-hidden /> Platform readiness</p>
             <h2 id="system-readiness-title" className="mt-1 text-base font-bold text-slate-900 dark:text-slate-100">
-              {loading ? 'Checking live services…' : ready ? 'Demo environment ready' : 'Demo environment needs attention'}
+              {loading ? 'Checking live services…' : ready ? 'Platform ready' : 'Platform needs attention'}
             </h2>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Live checks for the API, synthetic model and demo data layer.
+              Live checks for the API, database, risk engine and authentication.
             </p>
           </div>
           <button className="btn-secondary !py-1.5 !text-xs" onClick={() => void load()} disabled={loading}>
@@ -58,9 +58,9 @@ export function SystemReadinessCard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-400">
-          <span className="inline-flex items-center gap-1.5"><Activity size={12} aria-hidden /> Model {state?.model_version ?? '—'}</span>
+          <span className="inline-flex items-center gap-1.5"><Activity size={12} aria-hidden /> Risk engine {state?.model_version ?? '—'}</span>
           <span>Transport: {state?.checks.websocket_transport ?? '—'}</span>
-          <span>Synthetic demo only · not clinically validated</span>
+          <span>Risk engine provenance and clinical validation status are shown in the model information panels.</span>
         </div>
       </div>
     </section>
