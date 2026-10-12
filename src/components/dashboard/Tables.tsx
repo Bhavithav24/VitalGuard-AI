@@ -46,7 +46,7 @@ export function PriorityTable({ patients, risks, latest, compact }: {
                   <td className="px-3 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{p.ward} <span className="text-slate-400">· {p.bed}</span></td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2">
-                      <RiskBadge level={r.level} score={r.score} />
+                      <RiskBadge level={r.level} score={r.score ?? undefined} />
                     </div>
                     <div className="mt-1.5 h-1 w-24 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden" aria-hidden>
                       <div className="h-full rounded-full vg-bar-grow" style={{ width: `${r.score ?? 0}%`, background: s.hex }} />
