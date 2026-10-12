@@ -7,7 +7,11 @@ export function useLiveEvents() {
   const [eventCount, setEventCount] = useState(0);
 
   useEffect(() => createLiveSocket((event) => {
-    if (event.type === 'connected' || event.type === 'observation.created' || event.type === 'alert.created') {
+    if (event.type === 'connected') {
+      setLastEvent(event);
+      return;
+    }
+    if (event.type === 'observation.created' || event.type === 'alert.created') {
       setLastEvent(event);
       setEventCount((count) => count + 1);
     }
