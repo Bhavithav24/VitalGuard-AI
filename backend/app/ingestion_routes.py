@@ -147,4 +147,9 @@ async def ingest_batch(batch: IngestionBatch, principal: dict = Depends(require_
         "demo_only": True,
         "disclaimer": "Synthetic demo ingestion only. No real patient data or clinical use is authorized.",
     }
-\n\nfrom .patient_routes import router as patient_router\nrouter = APIRouter()\nrouter.include_router(ingestion_router)\nrouter.include_router(patient_router)\n
+
+
+from .patient_routes import router as patient_router
+router = APIRouter()
+router.include_router(ingestion_router)
+router.include_router(patient_router)\n
