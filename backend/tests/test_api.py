@@ -47,40 +47,16 @@ def test_model_info_is_explicit_about_synthetic_data(client):
     assert response.json()["training_data"] == "generated synthetic observations only"
 
 
-def test_prediction_is_saved_and_returns_observation_metadata(client):
+def test_prediction_is_unavailable_without_a_validated_model(client):
     response = client.post("/api/v1/risk/predict", json=valid_payload())
-    assert response.status_code == 200
-    body = response.json()
-    assert body["patient_id"] == "DEMO-001"
-    assert 0 <= body["risk_score"] <= 100
-    assert body["risk_level"] in {"low", "moderate", "high", "critical"}
-    assert 0 <= body["model_probability"] <= 1
-    assert body["demo_only"] is False
-    assert isinstance(body["factors"], list)
-    assert body["observation_id"] > 0
-    assert body["created_at"]
+    assert response.status_code == 503
+    assert "clinically validated ML model" in response.json()["detail"]
 
+
+def test_history_can_be_read_without_creating_synthetic_risk(client):
     history = client.get("/api/v1/observations", params={"patient_id": "DEMO-001"})
     assert history.status_code == 200
-    assert history.json()["count"] == 1
-    assert history.json()["items"][0]["id"] == body["observation_id"]
-    assert history.json()["items"][0]["inputs"]["spo2"] == 98
-
-
-def test_history_can_filter_patient_and_limit(client):
-    client.post("/api/v1/risk/predict", json=valid_payload())
-    other = valid_payload()
-    other["patient_id"] = "DEMO-002"
-    client.post("/api/v1/risk/predict", json=other)
-
-    first = client.get("/api/v1/observations", params={"patient_id": "DEMO-001", "limit": 1})
-    assert first.status_code == 200
-    assert first.json()["count"] == 1
-    assert first.json()["items"][0]["patient_id"] == "DEMO-001"
-
-    all_records = client.get("/api/v1/observations", params={"limit": 1})
-    assert all_records.json()["count"] == 1
-    assert all_records.json()["next_before_id"] is not None
+    assert history.json()["count"] == 0
 
 
 def test_invalid_vitals_are_rejected(client):
@@ -323,7 +299,7 @@ def test_patient_scope_is_server_enforced(client, monkeypatch):
     token = login.json()["access_token"]
     allowed = client.post("/api/v1/risk/predict", json={**valid_payload(), "patient_id":"DEMO-TEAM-A-001"}, headers={"Authorization":f"Bearer {token}"})
     denied = client.post("/api/v1/risk/predict", json={**valid_payload(), "patient_id":"DEMO-OTHER-001"}, headers={"Authorization":f"Bearer {token}"})
-    assert allowed.status_code == 200
+    assert allowed.status_code == 503
     assert denied.status_code == 403
 
 
