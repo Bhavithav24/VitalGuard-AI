@@ -58,10 +58,7 @@ def _vitals(profile: int, step: int, age: int) -> dict:
             **{k: round(v + shift, 1) if isinstance(v, float) else v + shift for k, v in base.items()},
             "consciousness": "alert", "supplemental_oxygen": False, "spo2_scale": 1, "scale2_authorized": False}
 
-@router.post("/telemetry/tick")
-async def telemetry_tick(principal: dict = Depends(require_roles("admin"))):
-    if os.getenv("VITALGUARD_DEMO_TELEMETRY_ENABLED", "").strip().lower() != "true":
-        raise HTTPException(status_code=404, detail="Demo telemetry is disabled")
+async def emit_demo_tick() -> dict:
     _ensure_demo_patients()
     now = datetime.now(timezone.utc)
     step = int(now.timestamp() // 60)
@@ -96,3 +93,9 @@ async def telemetry_tick(principal: dict = Depends(require_roles("admin"))):
                 "source_system": "bedside-monitor-demo", "source_mode": "live",
             })
     return {"status": "ok", "source_system": "bedside-monitor-demo", "source_mode": "live", "patients": len(DEMO_PATIENTS), "emitted": emitted}
+
+@router.post("/telemetry/tick")
+async def telemetry_tick(principal: dict = Depends(require_roles("admin"))):
+    if os.getenv("VITALGUARD_DEMO_TELEMETRY_ENABLED", "").strip().lower() != "true":
+        raise HTTPException(status_code=404, detail="Demo telemetry is disabled")
+    return await emit_demo_tick()
