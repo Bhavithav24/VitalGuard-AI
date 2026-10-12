@@ -5,7 +5,7 @@ import {api} from '../services/api.ts';
 import {useLiveEvents} from '../services/useLiveEvents.ts';
 
 function build(ps:any[],os:any[],as:any[]){
-  const patients:Patient[]=ps.map(p=>({id:p.patient_id,age:Number(p.age??0),sex:p.sex==='F'?'F':'M',ward:p.unit||'Unassigned',bed:p.bed||'—',updatedAt:p.updated_at||p.created_at||new Date().toISOString()}));
+  const patients:Patient[]=ps.map(p=>({id:p.patient_id,age:Number(p.age??0),sex:p.sex==='F'?'F':p.sex==='M'?'M':'U',ward:p.unit||'Unassigned',bed:p.bed||'—',updatedAt:p.updated_at||p.created_at||new Date().toISOString()}));
   const histories:Record<string,VitalReading[]>={},latest:Record<string,VitalReading>={},risks:Record<string,RiskSignal>={},groups:Record<string,any[]>={};
   patients.forEach(p=>histories[p.id]=[]);
   os.forEach(o=>(groups[o.patient_id]??=[]).push(o));
