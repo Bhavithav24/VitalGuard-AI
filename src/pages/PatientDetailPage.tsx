@@ -28,7 +28,7 @@ export function PatientDetailPage() {
       <DetailHeader id={patient.id} ward={patient.ward} bed={patient.bed} age={patient.age} sex={patient.sex} scenario={patient.scenario} updated={patient.updatedAt} />
       <div className="relative mt-4 flex flex-wrap items-center gap-3">
         <span className="inline-flex items-center gap-1.5 text-xs text-slate-300"><MapPin size={13} aria-hidden className="text-teal-300" />{patient.ward} · Bed {patient.bed}</span>
-        {r && r.level!=='unavailable' && r.score!==null && <RiskBadge level={r.level} score={r.score} />}
+        {r && r.level!=='unavailable' && r.score!==null && <RiskBadge level={r.level} score={r.score ?? undefined} />}
         {r?.level==='unavailable' && <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border bg-slate-100/10 text-slate-200 border-white/10">ML risk unavailable</span>}
         {r?.news2!==null && r?.news2!==undefined && <span className="text-[11px] text-slate-400 ml-auto tabular-nums">NEWS2 {r.news2}</span>}
       </div>
