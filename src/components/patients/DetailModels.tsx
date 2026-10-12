@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { VitalReading, RiskSignal } from '../../types/index.ts';
 import { CHART_COLORS } from '../../theme/tokens.ts';
 import { formatTimeAgo } from '../../utils/format.ts';
+import type { VitalCardModel } from './VitalCard.tsx';
 
 export function vitalCards(v: VitalReading, first: VitalReading | undefined, history: VitalReading[]): VitalCardModel[] {
   const sparkOf=(pick:(x:VitalReading)=>number)=>history.map(pick).slice(-14);
