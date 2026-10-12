@@ -38,12 +38,12 @@ async def lifespan(_app: FastAPI):
         while True:
             try:
                 result = await emit_demo_tick()
-                logger.info("Controlled demo telemetry tick: %s", result)
+                logger.warning("Controlled demo telemetry tick: %s", result)
             except Exception:
                 logger.exception("Controlled demo telemetry tick failed")
             await asyncio.sleep(60)
     demo_task = asyncio.create_task(_demo_loop())
-    logger.info("Controlled demo telemetry loop enabled")
+    logger.warning("Controlled demo telemetry loop enabled")
     try:
         yield
     finally:
