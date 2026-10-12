@@ -35,7 +35,7 @@ async def lifespan(_app: FastAPI):
     initialize_storage()
     await hub.start()
     demo_task = None
-    demo_enabled = os.getenv("VITALGUARD_DEMO_TELEMETRY_ENABLED", "").strip().lower() == "true"
+    demo_enabled = os.getenv("VITALGUARD_DEMO_TELEMETRY_ENABLED", "true").strip().lower() == "true"
     if demo_enabled:
         async def _demo_loop():
             while True:
