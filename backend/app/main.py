@@ -131,6 +131,7 @@ def health():
 @app.get("/api/v1/ops/readiness")
 def operational_readiness(principal: dict = Depends(authenticate_principal)):
     """Authenticated, secret-free operational readiness snapshot for the demo."""
+    demo_enabled = os.getenv("VITALGUARD_DEMO_TELEMETRY_ENABLED", "").strip().lower() == "true"
     try:
         database = database_health()
         database_status = "ok"
