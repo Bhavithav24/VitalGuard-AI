@@ -2,7 +2,7 @@
   "name": "vitalguard-ai-frontend",
   "private": true,
   "version": "0.1.0",
-  "description": "VitalGuard AI — AI-assisted clinical decision-support frontend prototype (demo, synthetic data only)",
+  "description": "VitalGuard AI — clinical monitoring prototype with controlled real-time demo telemetry and backend-authoritative observation workflows",
   "type": "module",
   "scripts": {
     "dev": "vite",
